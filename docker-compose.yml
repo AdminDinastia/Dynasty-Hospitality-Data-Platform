@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: dynasty_postgres
+
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: dynasty_fastapi
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+
+    depends_on:
+      - postgres
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - ./backend:/app
+
+volumes:
+  postgres_data:
+
+
