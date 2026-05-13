@@ -1,4 +1,4 @@
-# DOMAIN MODEL 
+# DOMAIN MODEL
 
 ## What exists in the system?
 
@@ -6,6 +6,8 @@ The system follows a data marketplace flow:
 
 ```text
 Data Provider (Organization) → Upload → Dataset → Aggregation → DataProduct → Data Consumer (Organization)
+                                                                      ↓
+                                                                Points/Money
 ```
 
 
@@ -16,13 +18,17 @@ Represents a person interacting with the platform.
 A user:
 
 * belongs to an organization
+* has a role (org_admin, org_member, platform_admin)
 * performs actions such as uploading data or consuming data products
 * does not own data directly (ownership belongs to the organization)
 
 Key attributes:
 
 * user_id
+* external_id (from auth provider like Clerk)
+* org_id
 * email
+* role
 * created_at
 
 
@@ -32,94 +38,102 @@ Represents a real-world entity that either provides or consumes data.
 
 Types:
 
-* provider → supplies data (e.g., hotels)
+* provider → supplies data (e.g., hotels, aparthotels)
 * consumer → consumes data (e.g., investors, companies)
 
 An organization:
 
+* owns accommodations (if provider)
 * owns datasets
 * has one or more users
-* can purchase or access data products
+* has a points balance
+* can purchase points with money
+* can spend points to access data products
 
 Key attributes:
 
 * org_id
 * name
 * type (provider | consumer)
+* points_balance
+* stripe_account_id (for providers receiving payouts)
+* stripe_customer_id (for consumers making payments)
 * created_at
 
 
-## Hotel
+## Accommodation
 
-A specialization of Organization (type = provider).
+Represents a lodging unit (hotel, hostel, aparthotel, resort).
 
 Used to store domain-specific attributes required for segmentation and analytics.
 
-Represents the **current state** of the hotel.
+Represents the **current state** of the accommodation.
 
 Key attributes:
 
-* hotel_id (org_id)
+* id
+* org_id
 * city
 * country
-* current_category (e.g., stars)
+* type (hotel | hostel | aparthotel | resort)
+* category_system (stars | keys)
+* category_value
 * current_room_count
-* last_renovation_date (optional, derived)
+* created_at
 
 
-## HotelEvent
+## AccommodationEvent
 
-Represents structural changes in a hotel over time.
+Represents structural changes in an accommodation over time.
 
 Used to track:
 
 * category changes
 * renovations
 * capacity changes
+* type changes
 
-A hotel event:
+An accommodation event:
 
-* belongs to a hotel
+* belongs to an accommodation
 * represents a single type of change
 * is effective at a specific point in time
 
 Supported event types:
 
-* category_change
-* renovation
-* capacity_change
+* capacity_change → room count changes
+* category_change → star/key rating changes
+* renovation → partial or full renovations
+* type_change → hotel → aparthotel, etc.
 
 Key attributes:
 
-```text
-- event_id
-- hotel_id
-- event_type
+* event_id
+* accommodation_id
+* event_type
+* effective_date
+* description
+* created_at
 
--- category_change
-- old_category (optional)
-- new_category (optional)
+Each event type has specialized attributes in separate tables (capacity_changes, category_changes, renovations, type_changes).
 
--- capacity_change
-- old_room_count (optional)
-- new_room_count (optional)
 
--- renovation
-- renovation_type (partial | full)
-- renovation_scope (rooms | common_areas | amenities | structural | full_property)
-- renovation_detail (optional)
-- renovation_cost (optional)
+## DataSharingConsent
 
--- shared
-- effective_date
-- created_at
-```
+Defines whether a provider allows their accommodation data to be shared.
 
-Design notes:
+Required for raw data monetization.
 
-* Each event represents **a single type of change**
-* Multiple events can occur on the same date
-* Historical state can be reconstructed from events if needed
+Key attributes:
+
+* consent_id
+* accommodation_id
+* allow_raw_sharing (boolean)
+* allow_aggregated (boolean)
+* revenue_share_pct (percentage received when individual data is sold)
+* terms_version
+* consent_given_at
+* revoked_at (nullable)
 
 
 ## Upload
@@ -129,7 +143,7 @@ Represents raw data submitted by a provider.
 An upload:
 
 * belongs to an organization
-* is stored as a raw file (e.g., CSV in S3)
+* is stored as a raw file (CSV in S3)
 * triggers a processing job
 
 States:
@@ -144,6 +158,7 @@ Key attributes:
 * upload_id
 * org_id
 * status
+* error_message
 * file_path
 * created_at
 
@@ -155,6 +170,7 @@ Represents processed and normalized data derived from an upload.
 A dataset:
 
 * belongs to a provider organization
+* is associated with a specific accommodation
 * is generated from a single upload (MVP decision)
 * is immutable
 * represents a consistent snapshot of operational data
@@ -169,22 +185,14 @@ Key attributes:
 
 * dataset_id
 * org_id
+* accommodation_id
 * source_upload_id
 * period_start
 * period_end
 * storage_path
+* is_active (only one active dataset per accommodation per period)
+* state (draft | ready | archived)
 * created_at
-
-State:
-
-* processing
-* ready
-* active
-* failed
-
-Optional attributes:
-
-* category_snapshot (optional, for historical consistency)
 
 
 ## Aggregation
@@ -194,101 +202,187 @@ Represents aggregated data derived from multiple datasets.
 Used to:
 
 * anonymize provider data
-* generate global metrics
+* generate market-level metrics
 
 Examples:
 
 * average occupancy per city
 * ADR per region
 
+Aggregations can be pre-computed for common queries (e.g., by geographic level) or computed on-demand.
+
 Key attributes:
 
 * aggregation_id
-* metric
-* dimensions (e.g., city, time)
-* period
+* aggregation_type (location | category | custom)
+* parameters (JSON: dimensions, filters)
 * storage_path
+* status (pending | computing | ready | failed)
+* computed_at
+* expires_at (optional cache expiration)
 * created_at
 
 
-## DataProduct
+## AggregatedProduct
 
-Represents a consumable data asset.
+Represents a consumable aggregated data asset.
 
-Types:
-
-* aggregated → based on aggregations (anonymized)
-* raw → based on individual datasets (controlled access)
-
-Aggregated DataProduct:
-
-* derived from aggregations
-* anonymized
-* scalable
-
-Raw DataProduct:
-
-* derived from individual provider datasets
-* higher value
-* requires permission and access control
+Based on aggregations, anonymized across multiple providers.
 
 Key attributes:
 
 * product_id
-* type (aggregated | raw)
 * name
 * description
-* source_ref (aggregation_id or dataset_id)
-* period
+* aggregation_id
+* template_name (reference to JSON report template)
+* price_points
+* is_public
+* is_featured
+* status (active | inactive)
 * created_at
 
 
-## DataAccess
+## RawProduct
+
+Represents access to individual accommodation data.
+
+Based on a specific accommodation's datasets.
+
+Key attributes:
+
+* product_id
+* name
+* description
+* accommodation_id
+* template_name (reference to JSON report template)
+* preview_config (JSON: what metrics non-paying users see)
+* price_points
+* is_public
+* is_featured
+* status (active | inactive)
+* created_at
+
+
+## MarketReport
+
+Represents a saved market analysis report for a consumer.
+
+Key attributes:
+
+* report_id
+* org_id (consumer)
+* aggregated_product_id
+* filters (JSON: user-selected filters like zone, period, category)
+* created_at
+
+
+## AccommodationReport
+
+Represents a saved individual accommodation report for a consumer.
+
+Key attributes:
+
+* report_id
+* org_id (consumer)
+* raw_product_id
+* created_at
+
+
+## Entitlement
 
 Represents access rights to a data product.
 
 Used to control:
 
-* granted access
-* purchased access
+* points-based access (consumer spent points)
+* granted access (manual platform grant)
 
 Key attributes:
 
-* access_id
+* entitlement_id
 * org_id (consumer)
-* product_id
-* access_type (granted | purchased)
-* created_at
+* aggregated_product_id (nullable)
+* raw_product_id (nullable)
+* entitlement_type (points | granted)
+* granted_at
+* expires_at (nullable)
 
 
-## Transaction
+## PaymentRecord
 
-Represents a purchase of a data product.
-
-Used for:
-
-* monetization
-* commission tracking
+Represents a real money payment where a consumer purchases points.
 
 Key attributes:
 
-* transaction_id
-* buyer_org_id
-* product_id
-* price
-* commission
-* created_at
-
-
-## ProviderConsent
-
-Defines whether a provider allows their data to be shared.
-
-Required for raw data monetization.
-
-Key attributes:
-
+* payment_id
 * org_id
-* allow_data_sharing (boolean)
-* sharing_scope (aggregated | raw)
+* amount (cents)
+* currency (ISO 4217)
+* points_awarded
+* stripe_payment_id
+* status (pending | completed | failed | refunded)
+* created_at
+
+
+## PointsLedger
+
+Immutable record of all point movements for audit trail.
+
+Every point earned or spent creates a ledger entry.
+
+Key attributes:
+
+* ledger_id
+* org_id
+* points (positive for earned, negative for spent)
+* reason (purchase | welcome_bonus | data_used | product_access | refund | manual)
+* reference_id (ID of related entity)
+* reference_type (payment | product | aggregation)
+* created_at
+
+
+## RevenueDistribution
+
+Represents a payout to a provider when their individual accommodation data is purchased.
+
+Key attributes:
+
+* distribution_id
+* raw_product_id (what was sold)
+* buyer_org_id (who bought it)
+* org_id (provider receiving payment)
+* accommodation_id (which accommodation's data)
+* amount (cents)
+* revenue_share_pct (locked at time of purchase)
+* stripe_transfer_id
+* status (pending | paid | failed)
+* created_at
+
+
+## Key Flows
+
+**Consumer purchases points:**
+1. PaymentRecord created (pending)
+2. Stripe processes payment
+3. PaymentRecord updated (completed)
+4. PointsLedger entry created (+points, reason=purchase)
+5. Organization.points_balance updated
+
+**Consumer accesses product:**
+1. Check points_balance >= product.price_points
+2. PointsLedger entry created (-points, reason=product_access)
+3. Organization.points_balance updated
+4. Entitlement created
+
+**Provider earns from aggregation:**
+1. Aggregation uses provider's dataset
+2. PointsLedger entry created (+points, reason=data_used)
+3. Organization.points_balance updated
+
+**Provider earns from individual sale:**
+1. Consumer purchases raw_product
+2. RevenueDistribution created (pending)
+3. Stripe Connect transfers money to provider
+4. RevenueDistribution updated (paid)
 
