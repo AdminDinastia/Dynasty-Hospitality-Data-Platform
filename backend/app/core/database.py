@@ -7,10 +7,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Retrieve the database connection string from environment variables
-if os.getenv("ENV") == "docker":
-    DATABASE_URL = os.getenv("DATABASE_URL_DOCKER")
-elif os.getenv("ENV") == "local":
-    DATABASE_URL = os.getenv("DATABASE_URL_LOCAL")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is not set")
 
 
 # Create the SQLAlchemy engine
@@ -21,7 +20,17 @@ engine = create_engine(DATABASE_URL)
 # Sessions are used to interact with the database (queries, inserts, updates, etc.)
 SessionLocal = sessionmaker(bind=engine)
 
-# Base class for all ORM models
+
+# Base class for all ORM
 # All database tables will inherit from this class
 # SQLAlchemy uses this metadata to generate tables and migrations
 Base = declarative_base()
+
+
+# Dependencies
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
