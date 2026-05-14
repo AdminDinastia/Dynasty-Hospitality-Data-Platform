@@ -1,7 +1,6 @@
 services:
   postgresql:
     image: postgres:15
-    container_name: dynasty_postgres
 
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -16,19 +15,34 @@ services:
 
   backend:
     build: ./backend
-    container_name: dynasty_fastapi
+    env_file:
+      - .env
 
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
+    # environment:
+    #   DATABASE_URL: ${DATABASE_URL}
 
     depends_on:
       - postgresql
+      - minio
 
     ports:
       - "8000:8000"
 
     volumes:
       - ./backend:/app
+
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000" # API (boto3 connects here)
+      - "9001:9001" # Web console (UI to see buckets)
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server /data --console-address ":9001"
+    volumes:
+      - ./data/minio:/data
+
 
 volumes:
   postgres_data:

@@ -1,5 +1,5 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import declarative_base
 import os
 from dotenv import load_dotenv
 
@@ -14,11 +14,17 @@ if not DATABASE_URL:
 
 # Create the SQLAlchemy engine
 # The engine is the core interface that manages connections to the database
-engine = create_engine(DATABASE_URL)
+engine = create_async_engine(DATABASE_URL, echo=True, future=True)
 
 # Create a configured "Session" class
 # Sessions are used to interact with the database (queries, inserts, updates, etc.)
-SessionLocal = sessionmaker(bind=engine)
+AsyncSessionLocal = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autocommit=False,
+    autoflush=False,
+)
 
 
 # Base class for all ORM
@@ -28,9 +34,6 @@ Base = declarative_base()
 
 
 # Dependencies
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session

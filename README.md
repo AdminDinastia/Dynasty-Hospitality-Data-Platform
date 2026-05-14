@@ -1,13 +1,13 @@
-# Dynasty *(working name)*
+# Plozeus *(working name)*
 
-Dynasty is a data platform for the hospitality industry that transforms hotel data into structured insights for performance analysis and decision-making.
+Plozeus is a data platform for the hospitality industry that transforms hotel data into structured insights for performance analysis and decision-making.
 
 The platform allows hotels to upload operational data and converts it into structured insights such as KPIs, reports, and benchmarks.
 
 
 ## Overview
 
-Dynasty turns raw hotel data into clear, comparable, and useful information.
+Plozeus turns raw hotel data into clear, comparable, and useful information.
 
 Hotels can analyze their performance over time and understand how they compare to others.
 At the same time, investors and analysts can explore structured and comparable data to better understand the market.
@@ -44,7 +44,7 @@ The goal is to make hotel data:
 
 ## Vision
 
-Dynasty aims to provide a structured layer for hospitality data, enabling better analysis, benchmarking, and data-driven decision making.
+Plozeus aims to provide a structured layer for hospitality data, enabling better analysis, benchmarking, and data-driven decision making.
 
 
 ## Status
