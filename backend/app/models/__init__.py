@@ -1,5 +1,6 @@
 from app.models.core.organization import Organization
 from app.models.core.user import User
+from app.models.core.invitation import Invitation
 
 from app.models.accommodation.accommodation import Accommodation
 from app.models.accommodation.accommodation_tag import AccommodationTag

@@ -1,10 +1,19 @@
 from contextlib import asynccontextmanager
+
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Depends, HTTPException, status, Response
+
+import app.models
 from app.core.database import Base
 from app.core.database import get_db
-import app.models
 from app.scripts.init_s3 import init_buckets
-from sqlalchemy.orm import Session
-from fastapi import FastAPI, Depends
+from app.core.config import settings
+from app.core.dependencies import verify_token, get_current_user
+from app.api.v1 import auth
 
 
 @asynccontextmanager
@@ -18,8 +27,11 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Plozeus", version="0.1.0", lifespan=lifespan)
+app.include_router(auth.router, prefix="/api/v1")
 
-
-@app.get("/health")
-def health(db: Session = Depends(get_db)):
-    return {"status": "ok"}
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
