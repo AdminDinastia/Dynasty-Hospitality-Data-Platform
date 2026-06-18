@@ -6,6 +6,7 @@ uvicorn[standard]
 sqlalchemy
 asyncpg
 alembic
+psycopg2-binary
 
 # Validation
 pydantic
@@ -16,3 +17,9 @@ python-dotenv
 
 # Connection with S3
 boto3
+
+# Authentication
+clerk-backend-api
+fastapi-clerk-auth
+svix
+pyjwt[crypto]

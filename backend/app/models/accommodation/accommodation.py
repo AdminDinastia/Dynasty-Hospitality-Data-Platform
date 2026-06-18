@@ -38,7 +38,9 @@ class Accommodation(Base):
     category_system = Column(Enum(CategorySystem), nullable=True)
     category_value = Column(Integer, nullable=True)
 
-    tags = relationship("Tag", secondary="accommodation_tags", backref="accommodations")
+    tags = relationship(
+        "Tag", secondary="accommodation_tags", back_populates="accommodations"
+    )
 
     current_room_count = Column(Integer)
 
