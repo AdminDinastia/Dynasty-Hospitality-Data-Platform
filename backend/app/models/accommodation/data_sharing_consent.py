@@ -15,7 +15,9 @@ class DataSharingConsent(Base):
     __tablename__ = "data_sharing_consents"
 
     consent_id = Column(Integer, primary_key=True)
-    accommodation_id = Column(Integer, ForeignKey("accommodations.id"), nullable=False)
+    accommodation_id = Column(
+        Integer, ForeignKey("accommodations.id", ondelete="CASCADE"), nullable=False
+    )
 
     # What can be shared?
     allow_raw_sharing = Column(Boolean, nullable=False, default=False)

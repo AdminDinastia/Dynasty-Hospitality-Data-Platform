@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Enum,
     func,
+    null,
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -31,6 +32,7 @@ class Accommodation(Base):
     id = Column(Integer, primary_key=True)
     org_id = Column(Integer, ForeignKey("organizations.org_id"))
 
+    name = Column(String, nullable=False)
     city = Column(String)
     country = Column(String)
 

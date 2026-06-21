@@ -13,7 +13,7 @@ from app.core.database import get_db
 from app.scripts.init_s3 import init_buckets
 from app.core.config import settings
 from app.core.dependencies import verify_token, get_current_user
-from app.api.v1 import auth
+from app.api.v1.router import router as v1_router
 
 
 @asynccontextmanager
@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Plozeus", version="0.1.0", lifespan=lifespan)
-app.include_router(auth.router, prefix="/api/v1")
+app.include_router(v1_router, prefix="/api/v1")
 
 app.add_middleware(
     CORSMiddleware,
