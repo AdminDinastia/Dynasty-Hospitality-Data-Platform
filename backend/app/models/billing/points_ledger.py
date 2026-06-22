@@ -1,6 +1,10 @@
 import enum
-from sqlalchemy import Column, Integer, ForeignKey, DateTime, String, Enum
+from datetime import datetime
+
+from sqlalchemy import ForeignKey, DateTime, Enum
+from sqlalchemy.orm import mapped_column, Mapped
 from sqlalchemy.sql import func
+
 from app.core.database import Base
 
 
@@ -16,18 +20,22 @@ class PointsReason(enum.Enum):
 class PointsLedger(Base):
     __tablename__ = "points_ledger"
 
-    ledger_id = Column(Integer, primary_key=True)
-    org_id = Column(Integer, ForeignKey("organizations.org_id"), nullable=False)
+    ledger_id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.org_id"), nullable=False
+    )
 
     # Positive (earned) or negative (spent)
-    points = Column(Integer, nullable=False)
+    points: Mapped[int] = mapped_column(nullable=False)
 
-    reason = Column(Enum(PointsReason), nullable=False)
+    reason: Mapped[PointsReason] = mapped_column(Enum(PointsReason), nullable=False)
 
     # Reference to what caused this entry (payment_id, product_id, etc.)
-    reference_id = Column(Integer, nullable=True)
-    reference_type = Column(
-        String, nullable=True
+    reference_id: Mapped[int | None] = mapped_column(nullable=True)
+    reference_type: Mapped[str | None] = mapped_column(
+        nullable=True
     )  # "payment", "product", "aggregation"
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

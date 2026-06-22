@@ -1,5 +1,9 @@
 import enum
-from sqlalchemy import Column, Integer, String, DateTime, func, Enum
+from datetime import datetime
+
+from sqlalchemy import DateTime, func, Enum
+from sqlalchemy.orm import Mapped, mapped_column
+
 from app.core.database import Base
 
 
@@ -11,23 +15,26 @@ class OrganizationType(enum.Enum):
 class Organization(Base):
     __tablename__ = "organizations"
 
-    org_id = Column(Integer, primary_key=True)
-    name = Column(String)
+    org_id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(unique=True)
+
     # Type of organization in the marketplace
-    type = Column(Enum(OrganizationType), nullable=False)
+    type: Mapped[OrganizationType] = mapped_column(
+        Enum(OrganizationType), nullable=False
+    )
 
     # Monetization
-    points_balance = Column(Integer, nullable=False, default=0)
+    points_balance: Mapped[int] = mapped_column(nullable=False, default=0)
 
     # Providers (receive money)
-    stripe_account_id = Column(String, nullable=True)
-
-    # Conumers (pay money)
-    stripe_customer_id = Column(String, nullable=True)
+    stripe_account_id: Mapped[str | None] = mapped_column(nullable=True)
+    # Consumers (pay money)
+    stripe_customer_id: Mapped[str | None] = mapped_column(nullable=True)
 
     # Timestamps managed automatically by the database
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    updated_at = Column(
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

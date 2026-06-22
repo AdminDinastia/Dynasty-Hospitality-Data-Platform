@@ -1,6 +1,10 @@
 import enum
-from sqlalchemy import Column, Integer, ForeignKey, DateTime, String, Enum
+from datetime import datetime
+
+from sqlalchemy import ForeignKey, DateTime, String, Enum
 from sqlalchemy.sql import func
+from sqlalchemy.orm import Mapped, mapped_column
+
 from app.core.database import Base
 
 
@@ -14,22 +18,30 @@ class PaymentStatus(enum.Enum):
 class PaymentRecord(Base):
     __tablename__ = "payment_records"
 
-    payment_id = Column(Integer, primary_key=True)
-    org_id = Column(Integer, ForeignKey("organizations.org_id"), nullable=False)
+    payment_id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.org_id"), nullable=False
+    )
 
     # Amount in cents
-    amount = Column(Integer, nullable=False)
-    currency = Column(String(3), nullable=False, default="EUR")  # ISO 4217
+    amount: Mapped[int] = mapped_column(nullable=False)
+    currency: Mapped[str] = mapped_column(
+        String(3), nullable=False, default="EUR"
+    )  # ISO 4217
 
     # Points awarded for this payment
-    points_awarded = Column(Integer, nullable=False)
+    points_awarded: Mapped[int] = mapped_column(nullable=False)
 
     # Stripe payment reference
-    stripe_payment_id = Column(String, nullable=True)
+    stripe_payment_id: Mapped[str | None] = mapped_column(nullable=True)
 
-    status = Column(Enum(PaymentStatus), nullable=False, default=PaymentStatus.pending)
+    status: Mapped[PaymentStatus] = mapped_column(
+        Enum(PaymentStatus), nullable=False, default=PaymentStatus.pending
+    )
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

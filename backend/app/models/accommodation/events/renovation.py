@@ -1,5 +1,8 @@
 import enum
-from sqlalchemy import Column, ForeignKey, Float, Enum
+
+from sqlalchemy import ForeignKey, Enum
+from sqlalchemy.orm import Mapped, mapped_column
+
 from app.core.database import Base
 
 
@@ -19,8 +22,10 @@ class RenovationScope(enum.Enum):
 class Renovation(Base):
     __tablename__ = "renovations"
 
-    event_id = Column(ForeignKey("accommodation_events.event_id"), primary_key=True)
+    event_id: Mapped[int] = mapped_column(
+        ForeignKey("accommodation_events.event_id"), primary_key=True
+    )
 
-    renovation_type = Column(Enum(RenovationType))
-    renovation_scope = Column(Enum(RenovationScope))
-    cost = Column(Float)
+    renovation_type: Mapped[RenovationType] = mapped_column(Enum(RenovationType))
+    renovation_scope: Mapped[RenovationScope] = mapped_column(Enum(RenovationScope))
+    cost: Mapped[float] = mapped_column()

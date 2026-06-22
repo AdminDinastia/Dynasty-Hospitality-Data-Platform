@@ -12,7 +12,7 @@ class AccommodationCreate(BaseModel):
     country: str
     type: AccommodationType
     category_system: CategorySystem
-    category_value: int
+    category_value: float
     current_room_count: int
     tag_ids: Optional[List[int]] = []
 
@@ -24,7 +24,7 @@ class AccommodationResponse(BaseModel):
     country: str
     type: AccommodationType
     category_system: CategorySystem
-    category_value: int
+    category_value: float
     current_room_count: int
     id: int
     org_id: int
@@ -40,6 +40,6 @@ class AccommodationUpdate(BaseModel):
     country: Optional[str] = None
     type: Optional[AccommodationType] = None
     category_system: Optional[CategorySystem] = None
-    category_value: Optional[int] = None
+    category_value: Optional[float] = None
     current_room_count: Optional[int] = None
     tag_ids: Optional[List[int]] = []

@@ -1,14 +1,13 @@
 import enum
+from datetime import datetime
+
 from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    Boolean,
     ForeignKey,
     DateTime,
     Enum,
     func,
 )
+from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
@@ -20,30 +19,27 @@ class AggregatedProductStatus(enum.Enum):
 class AggregatedProduct(Base):
     __tablename__ = "aggregated_products"
 
-    product_id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    description = Column(String)
+    product_id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(nullable=False)
+    description: Mapped[str | None] = mapped_column(nullable=True)
 
-    # Data source
-    aggregation_id = Column(
-        Integer, ForeignKey("aggregations.aggregation_id"), nullable=False
+    aggregation_id: Mapped[int] = mapped_column(
+        ForeignKey("aggregations.aggregation_id"), nullable=False
     )
+    template_name: Mapped[str] = mapped_column(nullable=False)  # "market_report"
 
-    # Template - JSON in repo
-    template_name = Column(String, nullable=False)  # "market_report"
-
-    # Monetization
-    price_points = Column(Integer, nullable=False)
-
-    is_public = Column(Boolean, default=True)
-    is_featured = Column(Boolean, default=False)
-    status = Column(
+    price_points: Mapped[int] = mapped_column(nullable=False)
+    is_public: Mapped[bool] = mapped_column(default=True)
+    is_featured: Mapped[bool] = mapped_column(default=False)
+    status: Mapped[AggregatedProductStatus] = mapped_column(
         Enum(AggregatedProductStatus),
         nullable=False,
         default=AggregatedProductStatus.active,
     )
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

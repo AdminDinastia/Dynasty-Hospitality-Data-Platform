@@ -1,6 +1,10 @@
 import enum
+from datetime import datetime
+
+from sqlalchemy import ForeignKey, Enum, DateTime, func
+from sqlalchemy.orm import Mapped, mapped_column
+
 from app.core.database import Base
-from sqlalchemy import Column, ForeignKey, Integer, Enum, String, DateTime, func
 
 
 class UploadStatus(enum.Enum):
@@ -13,20 +17,21 @@ class UploadStatus(enum.Enum):
 class Upload(Base):
     __tablename__ = "uploads"
 
-    upload_id = Column(Integer, primary_key=True)
-    org_id = Column(ForeignKey("organizations.org_id"), nullable=False)
-
-    status = Column(
+    upload_id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.org_id"), nullable=False
+    )
+    status: Mapped[UploadStatus] = mapped_column(
         Enum(UploadStatus, name="upload_status"),
         nullable=False,
         default=UploadStatus.pending,
     )
+    error_message: Mapped[str | None] = mapped_column(nullable=True)
+    file_path: Mapped[str] = mapped_column(nullable=False)
 
-    error_message = Column(String, nullable=True)
-
-    file_path = Column(String, nullable=False)
-
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
