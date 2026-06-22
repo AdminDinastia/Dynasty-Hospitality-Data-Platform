@@ -1,14 +1,18 @@
+from sqlalchemy import ForeignKey, Enum
+from sqlalchemy.orm import mapped_column, Mapped
+
 from app.models.accommodation.accommodation import CategorySystem
 from app.core.database import Base
-from sqlalchemy import Column, Integer, ForeignKey, Enum
 
 
 class CategoryChange(Base):
     __tablename__ = "category_changes"
-    event_id = Column(ForeignKey("accommodation_events.event_id"), primary_key=True)
+    event_id: Mapped[int] = mapped_column(
+        ForeignKey("accommodation_events.event_id"), primary_key=True
+    )
 
-    old_value = Column(Integer)
-    new_value = Column(Integer)
+    old_value: Mapped[int] = mapped_column()
+    new_value: Mapped[int] = mapped_column()
 
-    old_system = Column(Enum(CategorySystem))
-    new_system = Column(Enum(CategorySystem))
+    old_system: Mapped[CategorySystem] = mapped_column(Enum(CategorySystem))
+    new_system: Mapped[CategorySystem] = mapped_column(Enum(CategorySystem))

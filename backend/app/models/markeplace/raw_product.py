@@ -1,15 +1,11 @@
 import enum
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    Boolean,
-    ForeignKey,
-    DateTime,
-    Enum,
-    JSON,
-)
+from datetime import datetime
+from typing import Any
+
+from sqlalchemy import ForeignKey, DateTime, Enum, JSON
 from sqlalchemy.sql import func
+from sqlalchemy.orm import Mapped, mapped_column
+
 from app.core.database import Base
 
 
@@ -21,29 +17,34 @@ class RawProductStatus(enum.Enum):
 class RawProduct(Base):
     __tablename__ = "raw_products"
 
-    product_id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    description = Column(String)
+    product_id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(nullable=False)
+    description: Mapped[str | None] = mapped_column(nullable=True)
 
     # Specific hotel this product refers to
-    accommodation_id = Column(Integer, ForeignKey("accommodations.id"), nullable=False)
+    accommodation_id: Mapped[int] = mapped_column(
+        ForeignKey("accommodations.id"), nullable=False
+    )
 
     # Reference to JSON template in repo
-    template_name = Column(String, nullable=False)  # "hotel_report"
+    template_name: Mapped[str] = mapped_column(nullable=False)  # "hotel_report"
 
     # Partial data shown to non-paying users
-    preview_config = Column(JSON, nullable=True)
+    preview_config: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     # Price in points
-    price_points = Column(Integer, nullable=False)
+    price_points: Mapped[int] = mapped_column(nullable=False)
 
-    is_public = Column(Boolean, default=True)
-    is_featured = Column(Boolean, default=False)
-    status = Column(
+    is_public: Mapped[bool] = mapped_column(default=True)
+    is_featured: Mapped[bool] = mapped_column(default=False)
+
+    status: Mapped[RawProductStatus] = mapped_column(
         Enum(RawProductStatus), nullable=False, default=RawProductStatus.active
     )
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

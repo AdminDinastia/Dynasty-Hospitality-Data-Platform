@@ -1,17 +1,16 @@
 import enum
+from datetime import datetime
 
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    DateTime,
     ForeignKey,
+    DateTime,
     Enum,
     func,
-    null,
 )
-from sqlalchemy.orm import relationship
+
 from app.core.database import Base
+from app.models.tags.tag import Tag
 
 
 class AccommodationType(enum.Enum):
@@ -29,24 +28,25 @@ class CategorySystem(enum.Enum):
 class Accommodation(Base):
     __tablename__ = "accommodations"
 
-    id = Column(Integer, primary_key=True)
-    org_id = Column(Integer, ForeignKey("organizations.org_id"))
-
-    name = Column(String, nullable=False)
-    city = Column(String)
-    country = Column(String)
-
-    type = Column(Enum(AccommodationType), nullable=False)
-    category_system = Column(Enum(CategorySystem), nullable=True)
-    category_value = Column(Integer, nullable=True)
-
-    tags = relationship(
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.org_id"))
+    name: Mapped[str] = mapped_column(nullable=False)
+    city: Mapped[str] = mapped_column()
+    country: Mapped[str] = mapped_column()
+    type: Mapped[AccommodationType] = mapped_column(
+        Enum(AccommodationType), nullable=False
+    )
+    category_system: Mapped[CategorySystem | None] = mapped_column(
+        Enum(CategorySystem), nullable=True
+    )
+    category_value: Mapped[float | None] = mapped_column(nullable=True)
+    tags: Mapped[list["Tag"]] = relationship(
         "Tag", secondary="accommodation_tags", back_populates="accommodations"
     )
-
-    current_room_count = Column(Integer)
-
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
+    current_room_count: Mapped[int | None] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

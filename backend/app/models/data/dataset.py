@@ -1,16 +1,10 @@
 import enum
+from datetime import date, datetime
+
+from sqlalchemy import ForeignKey, Date, Enum, DateTime, func
+from sqlalchemy.orm import Mapped, mapped_column
+
 from app.core.database import Base
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    ForeignKey,
-    Date,
-    Boolean,
-    Enum,
-    DateTime,
-    func,
-)
 
 
 class DatasetState(enum.Enum):
@@ -22,28 +16,34 @@ class DatasetState(enum.Enum):
 class Dataset(Base):
     __tablename__ = "datasets"
 
-    dataset_id = Column(Integer, primary_key=True)
-    org_id = Column(ForeignKey("organizations.org_id"), nullable=False)
-    accommodation_id = Column(Integer, ForeignKey("accommodations.id"), nullable=False)
+    dataset_id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.org_id"), nullable=False
+    )
+    accommodation_id: Mapped[int] = mapped_column(
+        ForeignKey("accommodations.id"), nullable=False
+    )
+    source_upload_id: Mapped[int | None] = mapped_column(
+        ForeignKey("uploads.upload_id"), nullable=True
+    )
 
-    source_upload_id = Column(ForeignKey("uploads.upload_id"), nullable=True)
+    name: Mapped[str] = mapped_column(nullable=False)
+    granularity: Mapped[str | None] = mapped_column(nullable=True)  # flexible
 
-    name = Column(String, nullable=False)
+    period_start: Mapped[date | None] = mapped_column(Date, nullable=True)
+    period_end: Mapped[date | None] = mapped_column(Date, nullable=True)
 
-    granularity = Column(String)  # flexible
+    storage_path: Mapped[str] = mapped_column(nullable=False)
+    currency: Mapped[str | None] = mapped_column(nullable=True)  # optional
 
-    period_start = Column(Date)
-    period_end = Column(Date)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    state: Mapped[DatasetState] = mapped_column(
+        Enum(DatasetState), nullable=False, default=DatasetState.draft
+    )
 
-    storage_path = Column(String, nullable=False)
-
-    currency = Column(String, nullable=True)  # optional
-
-    is_active = Column(Boolean, default=True)
-
-    state = Column(Enum(DatasetState), nullable=False, default="draft")
-
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

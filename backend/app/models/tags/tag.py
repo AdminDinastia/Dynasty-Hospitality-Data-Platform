@@ -1,7 +1,9 @@
 import enum
-from sqlalchemy import Column, Integer, String, Enum
+
+from sqlalchemy import Enum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.core.database import Base
-from sqlalchemy.orm import relationship
 
 
 class TagCategory(enum.Enum):
@@ -12,9 +14,10 @@ class TagCategory(enum.Enum):
 class Tag(Base):
     __tablename__ = "tags"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True)
-    category = Column(Enum(TagCategory), nullable=False)
-    accommodations = relationship(
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(unique=True)
+    category: Mapped[TagCategory] = mapped_column(Enum(TagCategory), nullable=False)
+
+    accommodations: Mapped[list["Accommodation"]] = relationship(
         "Accommodation", secondary="accommodation_tags", back_populates="tags"
     )

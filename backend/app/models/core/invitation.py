@@ -1,6 +1,8 @@
 import enum
+from datetime import datetime
 
-from sqlalchemy import func, Column, Integer, String, DateTime, ForeignKey, Enum
+from sqlalchemy import func, DateTime, ForeignKey, Enum
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 
@@ -13,10 +15,14 @@ class InvitationStatus(enum.Enum):
 class Invitation(Base):
     __tablename__ = "invitations"
 
-    invitation_id = Column(Integer, primary_key=True)
-    org_id = Column(Integer, ForeignKey("organizations.org_id"), nullable=False)
-    email = Column(String, nullable=False)
-    status = Column(
+    invitation_id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.org_id"), nullable=False
+    )
+    email: Mapped[str] = mapped_column(nullable=False)
+    status: Mapped[InvitationStatus] = mapped_column(
         Enum(InvitationStatus), default=InvitationStatus.pending, nullable=False
     )
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
