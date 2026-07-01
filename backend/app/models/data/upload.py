@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
-class UploadStatus(enum.Enum):
+class UploadStatus(str, enum.Enum):
     pending = "pending"
     processing = "processing"
     completed = "completed"

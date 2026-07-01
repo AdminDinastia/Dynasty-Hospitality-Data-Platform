@@ -13,14 +13,14 @@ from app.core.database import Base
 from app.models.tags.tag import Tag
 
 
-class AccommodationType(enum.Enum):
+class AccommodationType(str, enum.Enum):
     hotel = "hotel"
     hostel = "hostel"
     aparthotel = "aparthotel"
     resort = "resort"
 
 
-class CategorySystem(enum.Enum):
+class CategorySystem(str, enum.Enum):
     stars = "stars"
     keys = "keys"
 

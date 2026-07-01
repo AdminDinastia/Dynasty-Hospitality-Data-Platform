@@ -1,0 +1,152 @@
+from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
+
+from app.schemas.event import (
+    BaseEventResponse,
+    EventCreate,
+    CategoryChangeResponse,
+    EventUpdate,
+    RenovationChangeResponse,
+    TypeChangeResponse,
+    CapacityChangeResponse,
+)
+
+from app.core.dependencies import get_current_user, get_db
+from app.models.core.user import User, UserRole
+from app.models.accommodation.events.accommodation_event import EventType
+from app.services import accommodation_service, event_service
+
+router = APIRouter(prefix="/accommodations/{accommodation_id}/events")
+
+
+@router.post("")
+async def create_event(
+    accommodation_id: int,
+    data: EventCreate,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    existing = await accommodation_service.get_accommodation(session, accommodation_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Accommodation not found.")
+    if existing.org_id != user.org_id:
+        raise HTTPException(status_code=403, detail="Not authorized.")
+    if user.role != UserRole.org_admin:
+        raise HTTPException(
+            status_code=403, detail="Only org admins can create events."
+        )
+
+    if data.event_type == "capacity_change":
+        event = await event_service.create_capacity_change(
+            session, accommodation_id, data
+        )
+    elif data.event_type == "renovation":
+        event = await event_service.create_renovation(session, accommodation_id, data)
+    elif data.event_type == "category_change":
+        event = await event_service.create_category_change(
+            session, accommodation_id, data
+        )
+    elif data.event_type == "type_change":
+        event = await event_service.create_type_change(session, accommodation_id, data)
+    return event
+
+
+@router.get("")
+async def get_events(
+    accommodation_id: int,
+    event_type: EventType | None = None,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> List[AccommodationEvent]:
+    existing = await accommodation_service.get_accommodation(session, accommodation_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Accommodation not found.")
+    if existing.org_id != user.org_id:
+        # TODO: check entitlement when KAN-92 is implemented
+        raise HTTPException(status_code=403, detail="Not authorized.")
+    if event_type:
+        events = await event_service.get_events(
+            session=session, accommodation_id=accommodation_id, event_type=event_type
+        )
+
+    events = await event_service.get_events(
+        session=session, accommodation_id=accommodation_id
+    )
+
+    return events
+
+
+@router.patch("")
+async def patch_event(
+    accommodation_id: int,
+    data: EventUpdate,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    existing = await accommodation_service.get_accommodation(session, accommodation_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Accommodation not found.")
+    if existing.org_id != user.org_id:
+        raise HTTPException(status_code=403, detail="Not authorized.")
+    if user.role != UserRole.org_admin:
+        raise HTTPException(
+            status_code=403, detail="Only org admins can create events."
+        )
+
+    if data.event_type == "capacity_change":
+        event = await event_service.update_capacity_change(
+            session, accommodation_id, data
+        )
+        return CapacityChangeResponse(
+            event_id=event.event_id,
+            accommodation_id=event.accommodation_id,
+            effective_date=event.effective_date,
+            description=event.description,
+            created_at=event.created_at,
+            old_room_count=event.old_room_count,
+            new_room_count=event.new_room_count,
+        )
+
+    elif data.event_type == "renovation":
+        event = await event_service.create_renovation(session, accommodation_id, data)
+        return RenovationChangeResponse(
+            event_id=event.event_id,
+            accommodation_id=event.accommodation_id,
+            effective_date=event.effective_date,
+            description=event.description,
+            created_at=event.created_at,
+            renovation_type=event.renovation_type,
+            renovation_scope=event.renovation_scope,
+            cost=event.cost,
+        )
+    elif data.event_type == "category_change":
+        event = await event_service.update_category_change(
+            session, accommodation_id, data
+        )
+
+        return CategoryChangeResponse(
+            event_id=event.event_id,
+            accommodation_id=event.accommodation_id,
+            effective_date=event.effective_date,
+            description=event.description,
+            created_at=event.created_at,
+            old_value=event.old_value,
+            new_value=event.new_value,
+            old_system=event.old_system,
+            new_system=event.new_system,
+        )
+    elif data.event_type == "type_change":
+        event = await event_service.create_type_change(session, accommodation_id, data)
+
+        return TypeChangeResponse(
+            event_id=event.event_id,
+            accommodation_id=event.accommodation_id,
+            effective_date=event.effective_date,
+            description=event.description,
+            created_at=event.created_at,
+            old_type=event.old_type,
+            new_type=event.new_type,
+        )

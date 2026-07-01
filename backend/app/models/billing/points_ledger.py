@@ -8,7 +8,7 @@ from sqlalchemy.sql import func
 from app.core.database import Base
 
 
-class PointsReason(enum.Enum):
+class PointsReason(str, enum.Enum):
     purchase = "purchase"  # bought with money
     welcome_bonus = "welcome_bonus"  # gift on registration
     data_used = "data_used"  # provider: their data used in aggregation

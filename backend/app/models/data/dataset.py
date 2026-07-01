@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
-class DatasetState(enum.Enum):
+class DatasetState(str, enum.Enum):
     draft = "draft"
     ready = "ready"
     archived = "archived"

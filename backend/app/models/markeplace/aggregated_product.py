@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
-class AggregatedProductStatus(enum.Enum):
+class AggregatedProductStatus(str, enum.Enum):
     active = "active"
     inactive = "inactive"
 

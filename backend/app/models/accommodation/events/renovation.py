@@ -3,15 +3,18 @@ import enum
 from sqlalchemy import ForeignKey, Enum
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.database import Base
+from app.models.accommodation.events.accommodation_event import (
+    AccommodationEvent,
+    EventType,
+)
 
 
-class RenovationType(enum.Enum):
+class RenovationType(str, enum.Enum):
     partial = "partial"
     full = "full"
 
 
-class RenovationScope(enum.Enum):
+class RenovationScope(str, enum.Enum):
     rooms = "rooms"
     common_areas = "common_areas"
     amenities = "amenities"
@@ -19,13 +22,18 @@ class RenovationScope(enum.Enum):
     full_property = "full_property"
 
 
-class Renovation(Base):
+class Renovation(AccommodationEvent):
     __tablename__ = "renovations"
 
     event_id: Mapped[int] = mapped_column(
-        ForeignKey("accommodation_events.event_id"), primary_key=True
+        ForeignKey("accommodation_events.event_id", ondelete="CASCADE"),
+        primary_key=True,
     )
 
     renovation_type: Mapped[RenovationType] = mapped_column(Enum(RenovationType))
     renovation_scope: Mapped[RenovationScope] = mapped_column(Enum(RenovationScope))
     cost: Mapped[float] = mapped_column()
+
+    __mapper_args__ = {
+        "polymorphic_identity": EventType.renovation,  # discriminator value
+    }

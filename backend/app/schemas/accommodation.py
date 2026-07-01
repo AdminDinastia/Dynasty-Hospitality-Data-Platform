@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 from app.models.accommodation.accommodation import AccommodationType, CategorySystem
@@ -19,6 +19,7 @@ class AccommodationCreate(BaseModel):
 
 # Accommodation Response
 class AccommodationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     name: str
     city: str
     country: str
