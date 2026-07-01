@@ -10,7 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
-class EntitlementType(enum.Enum):
+class EntitlementType(str, enum.Enum):
     points = "points"  # paid with points (aggregated)
     granted = "granted"  # manually granted by platform
 

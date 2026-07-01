@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
-class RevenueDistributionStatus(enum.Enum):
+class RevenueDistributionStatus(str, enum.Enum):
     pending = "pending"
     paid = "paid"
     failed = "failed"

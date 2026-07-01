@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
-class UserRole(enum.Enum):
+class UserRole(str, enum.Enum):
     org_admin = "org_admin"
     org_member = "org_member"
     platform_admin = "platform_admin"

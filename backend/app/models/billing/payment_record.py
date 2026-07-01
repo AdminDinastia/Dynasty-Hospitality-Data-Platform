@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
-class PaymentStatus(enum.Enum):
+class PaymentStatus(str, enum.Enum):
     pending = "pending"
     completed = "completed"
     failed = "failed"

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
-class RawProductStatus(enum.Enum):
+class RawProductStatus(str, enum.Enum):
     active = "active"
     inactive = "inactive"
 

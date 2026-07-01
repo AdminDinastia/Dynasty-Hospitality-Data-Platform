@@ -5,11 +5,14 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
+from app.models.accommodation.events.accommodation_event import EventType
 from app.schemas.accommodation import (
     AccommodationCreate,
     AccommodationResponse,
     AccommodationUpdate,
 )
+
+
 from app.core.dependencies import get_current_user, get_db
 from app.models.core.user import User, UserRole
 from app.schemas.data_sharing import DataSharingUpdate, DataSharingConsentResponse
@@ -18,10 +21,10 @@ from app.models.accommodation.data_sharing_consent import DataSharingConsent
 
 
 # Import the functions here from the services so the business logic is not exposed
-router = APIRouter()
+router = APIRouter(prefix="/accommodations")
 
 
-@router.post("/accommodations")
+@router.post("")
 async def create_accommodation(
     data: AccommodationCreate,
     user: User = Depends(get_current_user),
@@ -30,28 +33,17 @@ async def create_accommodation(
     accommodation = await accommodation_service.create_accommodation(
         session, data, user.org_id
     )
-    return AccommodationResponse(
-        name=accommodation.name,
-        city=accommodation.city,
-        country=accommodation.country,
-        type=accommodation.type,
-        category_system=accommodation.category_system,
-        category_value=accommodation.category_value,
-        current_room_count=accommodation.current_room_count,
-        id=accommodation.id,
-        org_id=accommodation.org_id,
-        created_at=accommodation.created_at,
-        updated_at=accommodation.updated_at,
-        tags=[tag.name for tag in accommodation.tags],
-    )
+    response = AccommodationResponse.model_validate(accommodation)
+    response.tags = [tag.name for tag in accommodation.tags]
+    return response
 
 
-@router.get("/accommodations")
+@router.get("")
 async def get_accommodations(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> List[AccommodationResponse]:
-    accommodations = await accommodation_service.list_accommodations(
+    accommodations = await accommodation_service.get_accommodations(
         session, user.org_id
     )
     return [
@@ -73,7 +65,7 @@ async def get_accommodations(
     ]
 
 
-@router.get("/accommodations/{accommodation_id}")
+@router.get("/{accommodation_id}")
 async def get_accommodation(
     accommodation_id: int,
     user: User = Depends(get_current_user),
@@ -100,7 +92,7 @@ async def get_accommodation(
     )
 
 
-@router.patch("/accommodations/{accommodation_id}")
+@router.patch("/{accommodation_id}")
 async def patch_accommodation(
     accommodation_id: int,
     data: AccommodationUpdate,
@@ -120,6 +112,7 @@ async def patch_accommodation(
         raise HTTPException(
             status_code=403, detail="Only org admins can update accommodations."
         )
+
     accommodation = await accommodation_service.update_accommodation(
         session, accommodation_id, data
     )
@@ -140,7 +133,7 @@ async def patch_accommodation(
     )
 
 
-@router.patch("/accommodations/{accommodation_id}/data-sharing")
+@router.patch("/{accommodation_id}/data-sharing")
 async def patch_accommodation_data_sharing_consent(
     accommodation_id: int,
     data: DataSharingUpdate,
@@ -173,7 +166,7 @@ async def patch_accommodation_data_sharing_consent(
     )
 
 
-@router.delete("/accommodations/{accommodation_id}")
+@router.delete("/{accommodation_id}")
 async def delete_accommodation(
     accommodation_id: int,
     user: User = Depends(get_current_user),

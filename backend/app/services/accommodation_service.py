@@ -1,18 +1,15 @@
 from typing import Sequence
 
-from fastapi import HTTPException, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError
 
-from app.core.dependencies import get_current_user
 from app.models.tags.tag import Tag
 from app.models.accommodation.accommodation import Accommodation
-from app.models.accommodation.accommodation import AccommodationType, CategorySystem
 from app.services import data_sharing_service
 
 from app.schemas.accommodation import AccommodationCreate, AccommodationUpdate
+from app.services import event_service
 
 
 async def create_accommodation(
@@ -41,10 +38,12 @@ async def create_accommodation(
     await data_sharing_service.create_consent(session, new_accommodation.id)
 
     await session.commit()
+    await event_service.create_creation_event(session, new_accommodation)
+
     return new_accommodation
 
 
-async def list_accommodations(
+async def get_accommodations(
     session: AsyncSession,
     org_id: int,
 ) -> Sequence[Accommodation]:

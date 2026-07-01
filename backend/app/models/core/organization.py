@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
-class OrganizationType(enum.Enum):
+class OrganizationType(str, enum.Enum):
     provider = "provider"
     consumer = "consumer"
 

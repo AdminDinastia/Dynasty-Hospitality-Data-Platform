@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
-class InvitationStatus(enum.Enum):
+class InvitationStatus(str, enum.Enum):
     pending = "pending"
     accepted = "accepted"
 

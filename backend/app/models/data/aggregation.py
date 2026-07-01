@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
-class AggregationStatus(enum.Enum):
+class AggregationStatus(str, enum.Enum):
     pending = "pending"
     computing = "computing"
     ready = "ready"

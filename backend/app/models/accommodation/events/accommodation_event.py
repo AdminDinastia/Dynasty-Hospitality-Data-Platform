@@ -7,18 +7,25 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
-class EventType(enum.Enum):
+class EventType(str, enum.Enum):
     renovation = "renovation"
     category_change = "category_change"
     capacity_change = "capacity_change"
     type_change = "type_change"
+    created = "created"
 
 
 class AccommodationEvent(Base):
     __tablename__ = "accommodation_events"
+    __mapper_args__ = {
+        "polymorphic_on": "event_type",
+        "polymorphic_identity": None,
+    }
 
     event_id: Mapped[int] = mapped_column(primary_key=True)
-    accommodation_id: Mapped[int] = mapped_column(ForeignKey("accommodations.id"))
+    accommodation_id: Mapped[int] = mapped_column(
+        ForeignKey("accommodations.id", ondelete="CASCADE")
+    )
 
     event_type: Mapped[EventType] = mapped_column(Enum(EventType), nullable=False)
     effective_date: Mapped[date] = mapped_column(Date)
