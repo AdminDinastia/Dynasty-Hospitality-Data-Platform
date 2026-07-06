@@ -18,9 +18,13 @@ class Upload(Base):
     __tablename__ = "uploads"
 
     upload_id: Mapped[int] = mapped_column(primary_key=True)
+    accommodation_id: Mapped[int] = mapped_column(
+        ForeignKey("accommodations.id"), nullable=False
+    )
     org_id: Mapped[int] = mapped_column(
         ForeignKey("organizations.org_id"), nullable=False
     )
+
     status: Mapped[UploadStatus] = mapped_column(
         Enum(UploadStatus, name="upload_status"),
         nullable=False,
@@ -34,4 +38,10 @@ class Upload(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    is_active: Mapped[bool] = mapped_column(
+        default=True, nullable=False, server_default="true"
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )

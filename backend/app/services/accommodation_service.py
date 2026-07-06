@@ -1,4 +1,5 @@
 from typing import Sequence
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -50,6 +51,7 @@ async def get_accommodations(
     query = (
         select(Accommodation)
         .where(Accommodation.org_id == org_id)
+        .where(Accommodation.is_active)
         .options(selectinload(Accommodation.tags))
     )
     result = await session.execute(query)
@@ -65,6 +67,7 @@ async def get_accommodation(
     query = (
         select(Accommodation)
         .where(Accommodation.id == accommodation_id)
+        .where(Accommodation.is_active)
         .options(selectinload(Accommodation.tags))
     )
     result = await session.execute(query)
@@ -110,6 +113,7 @@ async def delete_accommodation(session: AsyncSession, accommodation_id: int) -> 
     if not accommodation:
         return False
 
-    await session.delete(accommodation)
+    accommodation.is_active = False
+    accommodation.deleted_at = datetime.now(timezone.utc)
     await session.commit()
     return True
