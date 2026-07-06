@@ -30,9 +30,18 @@ async def create_accommodation(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> AccommodationResponse:
+    if user.role != UserRole.org_admin:
+        raise HTTPException(
+            status_code=403, detail="Only org admins can create accommodations."
+        )
+
     accommodation = await accommodation_service.create_accommodation(
         session, data, user.org_id
     )
+    if not accommodation:
+        raise HTTPException(status_code=404, detail="Accommodation not found.")
+    if accommodation.org_id != user.org_id:
+        raise HTTPException(status_code=403, detail="Not authorized.")
     response = AccommodationResponse.model_validate(accommodation)
     response.tags = [tag.name for tag in accommodation.tags]
     return response

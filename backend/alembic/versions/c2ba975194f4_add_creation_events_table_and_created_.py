@@ -20,7 +20,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute("ALTER TYPE eventtype ADD VALUE IF NOT EXISTS 'created'")
+    with op.get_context().autocommit_block():
+        op.execute("ALTER TYPE eventtype ADD VALUE IF NOT EXISTS 'created'")
     op.create_table(
         "creation_events",
         sa.Column(
@@ -66,7 +67,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_table("creation_events")
+    op.execute("DROP TABLE IF EXISTS creation_events")
     op.execute("DELETE FROM accommodation_events WHERE event_type = 'created'")
     op.execute(
         "ALTER TABLE accommodation_events ALTER COLUMN event_type TYPE varchar USING event_type::text"
