@@ -19,7 +19,6 @@ class Entitlement(Base):
     __tablename__ = "entitlements"
 
     entitlement_id: Mapped[int] = mapped_column(primary_key=True)
-
     org_id: Mapped[int] = mapped_column(
         ForeignKey("organizations.org_id"), nullable=False
     )
@@ -43,4 +42,7 @@ class Entitlement(Base):
 
     expires_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
+    )
+    is_active: Mapped[bool] = mapped_column(
+        default=True, nullable=False, server_default="true"
     )

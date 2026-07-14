@@ -58,8 +58,7 @@ async def get_accommodations(
     return [
         AccommodationResponse(
             name=a.name,
-            city=a.city,
-            country=a.country,
+            location=a.location,
             type=a.type,
             category_system=a.category_system,
             category_value=a.category_value,
@@ -87,8 +86,7 @@ async def get_accommodation(
         raise HTTPException(status_code=404, detail="Accommodation not found.")
     return AccommodationResponse(
         name=accommodation.name,
-        city=accommodation.city,
-        country=accommodation.country,
+        location=accommodation.location,
         type=accommodation.type,
         category_system=accommodation.category_system,
         category_value=accommodation.category_value,
@@ -128,8 +126,7 @@ async def patch_accommodation(
 
     return AccommodationResponse(
         name=accommodation.name,
-        city=accommodation.city,
-        country=accommodation.country,
+        location=accommodation.location,
         type=accommodation.type,
         category_system=accommodation.category_system,
         category_value=accommodation.category_value,

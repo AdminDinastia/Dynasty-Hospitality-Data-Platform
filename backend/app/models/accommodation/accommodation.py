@@ -1,3 +1,4 @@
+from typing import Any
 import enum
 from datetime import datetime
 
@@ -5,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import (
     ForeignKey,
     DateTime,
+    JSON,
     Enum,
     func,
 )
@@ -31,8 +33,7 @@ class Accommodation(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     org_id: Mapped[int] = mapped_column(ForeignKey("organizations.org_id"))
     name: Mapped[str] = mapped_column(nullable=False)
-    city: Mapped[str] = mapped_column()
-    country: Mapped[str] = mapped_column()
+    location: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     type: Mapped[AccommodationType] = mapped_column(
         Enum(AccommodationType), nullable=False
     )

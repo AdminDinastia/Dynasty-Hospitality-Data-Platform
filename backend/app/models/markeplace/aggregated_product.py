@@ -12,8 +12,9 @@ from app.core.database import Base
 
 
 class AggregatedProductStatus(str, enum.Enum):
+    draft = "draft"
     active = "active"
-    inactive = "inactive"
+    failed = "failed"
 
 
 class AggregatedProduct(Base):
@@ -30,11 +31,15 @@ class AggregatedProduct(Base):
 
     price_points: Mapped[int] = mapped_column(nullable=False)
     is_public: Mapped[bool] = mapped_column(default=True)
-    is_featured: Mapped[bool] = mapped_column(default=False)
     status: Mapped[AggregatedProductStatus] = mapped_column(
         Enum(AggregatedProductStatus),
         nullable=False,
-        default=AggregatedProductStatus.active,
+        default=AggregatedProductStatus.draft,
+    )
+
+    is_featured: Mapped[bool] = mapped_column(default=False)
+    is_active: Mapped[bool] = mapped_column(
+        default=True, nullable=False, server_default="true"
     )
 
     created_at: Mapped[datetime] = mapped_column(
