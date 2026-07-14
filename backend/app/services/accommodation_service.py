@@ -25,8 +25,7 @@ async def create_accommodation(
     new_accommodation = Accommodation(
         name=data.name,
         org_id=org_id,
-        city=data.city,
-        country=data.country,
+        location=data.location,
         type=data.type,
         category_system=data.category_system,
         category_value=data.category_value,

@@ -1,17 +1,11 @@
-import enum
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ForeignKey, DateTime, Enum, JSON
+from sqlalchemy import ForeignKey, DateTime, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
-
-
-class RawProductStatus(str, enum.Enum):
-    active = "active"
-    inactive = "inactive"
 
 
 class RawProduct(Base):
@@ -20,6 +14,7 @@ class RawProduct(Base):
     product_id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(nullable=False)
     description: Mapped[str | None] = mapped_column(nullable=True)
+    year: Mapped[int] = mapped_column(nullable=False)
 
     # Specific hotel this product refers to
     accommodation_id: Mapped[int] = mapped_column(
@@ -38,8 +33,8 @@ class RawProduct(Base):
     is_public: Mapped[bool] = mapped_column(default=True)
     is_featured: Mapped[bool] = mapped_column(default=False)
 
-    status: Mapped[RawProductStatus] = mapped_column(
-        Enum(RawProductStatus), nullable=False, default=RawProductStatus.active
+    is_active: Mapped[bool] = mapped_column(
+        nullable=False, default=True, server_default="true"
     )
 
     created_at: Mapped[datetime] = mapped_column(
