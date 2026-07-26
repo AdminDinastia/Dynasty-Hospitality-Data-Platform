@@ -1,6 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from svix.webhooks import Webhook, WebhookVerificationError
 from clerk_backend_api import Clerk
 
 from app.core.config import settings
@@ -10,34 +9,10 @@ from app.schemas.auth import OnboardingRequest, OnboardingResponse
 from app.services.organizations_service import create_organization
 from app.services.user_service import create_user
 
-router = APIRouter()
+router = APIRouter(prefix="/auth")
 
 
-@router.post("/webhooks/clerk/user", status_code=status.HTTP_204_NO_CONTENT)
-async def webhook_handler(
-    request: Request,
-    response: Response,
-    session: AsyncSession = Depends(get_db),
-):
-    headers = request.headers
-    payload = await request.body()
-    try:
-        wh = Webhook(settings.clerk_webhook_signing_secret)
-        msg = wh.verify(payload, headers)
-    except WebhookVerificationError:
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return
-
-    type = msg.get("type")
-    if type == "user.created":
-        return
-    elif type == "user.updated":
-        return
-    elif type == "user.deleted":
-        return
-
-
-@router.post("/auth/onboarding")
+@router.post("/onboarding")
 async def onboarding(
     data: OnboardingRequest,
     payload=Depends(verify_token),

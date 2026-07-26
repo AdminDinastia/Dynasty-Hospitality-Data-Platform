@@ -23,3 +23,6 @@ clerk-backend-api
 fastapi-clerk-auth
 svix
 pyjwt[crypto]
+
+# Payments
+stripe
