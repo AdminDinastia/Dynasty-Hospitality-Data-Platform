@@ -1,5 +1,8 @@
 from pydantic_settings import BaseSettings
 
+POINTS_PER_EUR = 10
+WELCOME_POINTS = 1000
+
 
 class Settings(BaseSettings):
     # Database
@@ -20,6 +23,13 @@ class Settings(BaseSettings):
     clerk_jwks_url: str
     clerk_jwks_public_key: str
     clerk_webhook_signing_secret: str
+
+    # Stripe
+    stripe_secret_key: str
+    stripe_webhook_secret: str
+
+    # Frontend
+    frontend_url: str = "http://localhost:3000"
 
     class Config:
         env_file = "/app/.env"
