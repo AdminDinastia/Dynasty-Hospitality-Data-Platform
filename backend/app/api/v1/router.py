@@ -10,6 +10,8 @@ from app.api.v1 import (
     entitlements,
     points,
     webhooks,
+    stripe,
+    revenue,
 )
 
 router = APIRouter()
@@ -23,3 +25,5 @@ router.include_router(products.router)
 router.include_router(entitlements.router)
 router.include_router(points.router)
 router.include_router(webhooks.router)
+router.include_router(stripe.router)
+router.include_router(revenue.router)

@@ -2,13 +2,20 @@ from typing import Sequence
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
+import stripe
 
+from app.models.accommodation.accommodation import Accommodation
 from app.models.billing.entitlement import Entitlement, EntitlementType
 from app.models.billing.points_ledger import PointsLedger, PointsReason
 from app.models.core.organization import Organization
+from app.models.markeplace import raw_product
 from app.models.markeplace.aggregated_product import AggregatedProduct
 from app.models.markeplace.raw_product import RawProduct
 from app.models.accommodation.data_sharing_consent import DataSharingConsent
+from app.models.billing.revenue_distribution import (
+    RevenueDistribution,
+    RevenueDistributionStatus,
+)
 from app.models.data.aggregation import Aggregation
 from app.schemas.product import (
     AggregatedProductFilters,
@@ -236,9 +243,64 @@ async def purchase_raw_product(
         entitlement_type=EntitlementType.points,
         org_id=org_id,
     )
+
     session.add(new_points_ledger)
     session.add(new_entitl)
     await session.commit()
+
+    # Obtain DataSharingConsent for accommodation
+    accommodation_query = select(Accommodation).where(
+        Accommodation.id == product.accommodation_id
+    )
+    accommodation_result = await session.execute(accommodation_query)
+    accommodation = accommodation_result.scalar_one_or_none()
+
+    provider_org_query = select(Organization).where(
+        Organization.org_id == accommodation.org_id
+    )
+    provider_org_result = await session.execute(provider_org_query)
+    provider_org = provider_org_result.scalar_one_or_none()
+
+    dsc_query = select(DataSharingConsent).where(
+        DataSharingConsent.accommodation_id == product.accommodation_id
+    )
+    dsc_result = await session.execute(dsc_query)
+    data_sharing_consent = dsc_result.scalar_one_or_none()
+
+    if not data_sharing_consent:
+        # No consent configured
+        await session.refresh(new_entitl)
+        return new_entitl
+
+    provider_amount = (
+        product.price_points * data_sharing_consent.revenue_share_pct
+    ) / 100
+
+    stripe_transfer_id = None
+    if provider_org and provider_org.stripe_account_id:
+        transfer = await stripe.Transfer.create_async(
+            amount=int(provider_amount * 100),
+            currency="eur",
+            destination=provider_org.stripe_account_id,
+        )
+        stripe_transfer_id = transfer.id
+
+    new_rev_distribution = RevenueDistribution(
+        raw_product_id=product.product_id,
+        buyer_org_id=org_id,
+        org_id=provider_org.org_id,
+        accommodation_id=product.accommodation_id,
+        amount=int(provider_amount),
+        revenue_share_pct=data_sharing_consent.revenue_share_pct,
+        stripe_transfer_id=stripe_transfer_id,
+        status=RevenueDistributionStatus.paid
+        if stripe_transfer_id
+        else RevenueDistributionStatus.pending,
+    )
+
+    session.add(new_rev_distribution)
+    await session.commit()
+
     await session.refresh(new_entitl)
 
     return new_entitl

@@ -5,7 +5,7 @@ import stripe
 from app.core.config import settings
 
 from app.core.database import get_db
-from app.services import points_service
+from app.services import points_service, revenue_service
 
 router = APIRouter(prefix="/webhooks")
 
@@ -35,7 +35,9 @@ async def webhook_handler(
 
 
 @router.post("/stripe/payment")
-async def stripe_webhook(request: Request, session: AsyncSession = Depends(get_db)):
+async def stripe_payment_webhook(
+    request: Request, session: AsyncSession = Depends(get_db)
+):
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
     try:
@@ -45,4 +47,20 @@ async def stripe_webhook(request: Request, session: AsyncSession = Depends(get_d
     except stripe.SignatureVerificationError:
         raise HTTPException(400, detail="Invalid signature.")
     await points_service.handle_payment_webhook(session=session, event=event)
+    return {"status": "ok"}
+
+
+@router.post("/stripe/connect")
+async def stripe_connect_webhook(
+    request: Request, session: AsyncSession = Depends(get_db)
+):
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.stripe_webhook_secret
+        )
+    except stripe.SignatureVerificationError:
+        raise HTTPException(400, detail="Invalid signature.")
+    await revenue_service.handle_connect_webhook(session=session, event=event)
     return {"status": "ok"}

@@ -1,19 +1,20 @@
-"""initial schema
+"""initial complete schema
 
-Revision ID: 5f545348cf80
+Revision ID: 4d0e421d194f
 Revises:
-Create Date: 2026-05-13 16:12:07.706776
+Create Date: 2026-07-28 11:29:54.746702
 
 """
 
 from typing import Sequence, Union
+from sqlalchemy.dialects import postgresql
 
 from alembic import op
 import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "5f545348cf80"
+revision: str = "4d0e421d194f"
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -41,14 +42,14 @@ def upgrade() -> None:
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.PrimaryKeyConstraint("aggregation_id"),
     )
     op.create_table(
         "organizations",
         sa.Column("org_id", sa.Integer(), nullable=False),
-        sa.Column("name", sa.String(), nullable=True),
+        sa.Column("name", sa.String(), nullable=False),
         sa.Column(
             "type",
             sa.Enum("provider", "consumer", name="organizationtype"),
@@ -61,20 +62,21 @@ def upgrade() -> None:
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.Column(
             "updated_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.PrimaryKeyConstraint("org_id"),
+        sa.UniqueConstraint("name"),
     )
     op.create_table(
         "tags",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("name", sa.String(), nullable=True),
+        sa.Column("name", sa.String(), nullable=False),
         sa.Column(
             "category", sa.Enum("style", "policty", name="tagcategory"), nullable=False
         ),
@@ -84,9 +86,9 @@ def upgrade() -> None:
     op.create_table(
         "accommodations",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("org_id", sa.Integer(), nullable=True),
-        sa.Column("city", sa.String(), nullable=True),
-        sa.Column("country", sa.String(), nullable=True),
+        sa.Column("org_id", sa.Integer(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("location", sa.JSON(), nullable=True),
         sa.Column(
             "type",
             sa.Enum(
@@ -99,20 +101,22 @@ def upgrade() -> None:
             sa.Enum("stars", "keys", name="categorysystem"),
             nullable=True,
         ),
-        sa.Column("category_value", sa.Integer(), nullable=True),
+        sa.Column("category_value", sa.Float(), nullable=True),
         sa.Column("current_room_count", sa.Integer(), nullable=True),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.Column(
             "updated_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
+        sa.Column("is_active", sa.Boolean(), server_default="true", nullable=False),
+        sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(
             ["org_id"],
             ["organizations.org_id"],
@@ -127,24 +131,25 @@ def upgrade() -> None:
         sa.Column("aggregation_id", sa.Integer(), nullable=False),
         sa.Column("template_name", sa.String(), nullable=False),
         sa.Column("price_points", sa.Integer(), nullable=False),
-        sa.Column("is_public", sa.Boolean(), nullable=True),
-        sa.Column("is_featured", sa.Boolean(), nullable=True),
+        sa.Column("is_public", sa.Boolean(), nullable=False),
         sa.Column(
             "status",
-            sa.Enum("active", "inactive", name="aggregatedproductstatus"),
+            sa.Enum("draft", "active", "failed", name="aggregatedproductstatus"),
             nullable=False,
         ),
+        sa.Column("is_featured", sa.Boolean(), nullable=False),
+        sa.Column("is_active", sa.Boolean(), server_default="true", nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.Column(
             "updated_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(
             ["aggregation_id"],
@@ -153,35 +158,89 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("product_id"),
     )
     op.create_table(
-        "uploads",
-        sa.Column("upload_id", sa.Integer(), nullable=False),
+        "invitations",
+        sa.Column("invitation_id", sa.Integer(), nullable=False),
         sa.Column("org_id", sa.Integer(), nullable=False),
+        sa.Column("email", sa.String(), nullable=False),
         sa.Column(
             "status",
-            sa.Enum(
-                "pending", "processing", "completed", "failed", name="upload_status"
-            ),
+            sa.Enum("pending", "accepted", name="invitationstatus"),
             nullable=False,
         ),
-        sa.Column("error_message", sa.String(), nullable=True),
-        sa.Column("file_path", sa.String(), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
-        ),
-        sa.Column(
-            "updated_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(
             ["org_id"],
             ["organizations.org_id"],
         ),
-        sa.PrimaryKeyConstraint("upload_id"),
+        sa.PrimaryKeyConstraint("invitation_id"),
+    )
+    op.create_table(
+        "payment_records",
+        sa.Column("payment_id", sa.Integer(), nullable=False),
+        sa.Column("org_id", sa.Integer(), nullable=False),
+        sa.Column("amount", sa.Integer(), nullable=False),
+        sa.Column("currency", sa.String(length=3), nullable=False),
+        sa.Column("points_awarded", sa.Integer(), nullable=False),
+        sa.Column("stripe_payment_id", sa.String(), nullable=True),
+        sa.Column(
+            "status",
+            sa.Enum("pending", "completed", "failed", "refunded", name="paymentstatus"),
+            nullable=False,
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["org_id"],
+            ["organizations.org_id"],
+        ),
+        sa.PrimaryKeyConstraint("payment_id"),
+    )
+    op.create_table(
+        "points_ledger",
+        sa.Column("ledger_id", sa.Integer(), nullable=False),
+        sa.Column("org_id", sa.Integer(), nullable=False),
+        sa.Column("points", sa.Integer(), nullable=False),
+        sa.Column(
+            "reason",
+            sa.Enum(
+                "purchase",
+                "welcome_bonus",
+                "data_used",
+                "product_access",
+                "refund",
+                "manual",
+                name="pointsreason",
+            ),
+            nullable=False,
+        ),
+        sa.Column("reference_id", sa.Integer(), nullable=True),
+        sa.Column("reference_type", sa.String(), nullable=True),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["org_id"],
+            ["organizations.org_id"],
+        ),
+        sa.PrimaryKeyConstraint("ledger_id"),
     )
     op.create_table(
         "users",
@@ -194,11 +253,13 @@ def upgrade() -> None:
             sa.Enum("org_admin", "org_member", "platform_admin", name="userrole"),
             nullable=False,
         ),
+        sa.Column("is_active", sa.Boolean(), server_default="true", nullable=False),
+        sa.Column("deactivated_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(
             ["org_id"],
@@ -209,7 +270,7 @@ def upgrade() -> None:
     op.create_table(
         "accommodation_events",
         sa.Column("event_id", sa.Integer(), nullable=False),
-        sa.Column("accommodation_id", sa.Integer(), nullable=True),
+        sa.Column("accommodation_id", sa.Integer(), nullable=False),
         sa.Column(
             "event_type",
             sa.Enum(
@@ -217,27 +278,27 @@ def upgrade() -> None:
                 "category_change",
                 "capacity_change",
                 "type_change",
+                "created",
                 name="eventtype",
             ),
             nullable=False,
         ),
-        sa.Column("effective_date", sa.DateTime(), nullable=True),
+        sa.Column("effective_date", sa.Date(), nullable=False),
         sa.Column("description", sa.String(), nullable=True),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.Column(
             "updated_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(
-            ["accommodation_id"],
-            ["accommodations.id"],
+            ["accommodation_id"], ["accommodations.id"], ondelete="CASCADE"
         ),
         sa.PrimaryKeyConstraint("event_id"),
     )
@@ -269,58 +330,13 @@ def upgrade() -> None:
             "consent_given_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.Column("revoked_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(
-            ["accommodation_id"],
-            ["accommodations.id"],
+            ["accommodation_id"], ["accommodations.id"], ondelete="CASCADE"
         ),
         sa.PrimaryKeyConstraint("consent_id"),
-    )
-    op.create_table(
-        "datasets",
-        sa.Column("dataset_id", sa.Integer(), nullable=False),
-        sa.Column("org_id", sa.Integer(), nullable=False),
-        sa.Column("accommodation_id", sa.Integer(), nullable=False),
-        sa.Column("source_upload_id", sa.Integer(), nullable=True),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("granularity", sa.String(), nullable=True),
-        sa.Column("period_start", sa.Date(), nullable=True),
-        sa.Column("period_end", sa.Date(), nullable=True),
-        sa.Column("storage_path", sa.String(), nullable=False),
-        sa.Column("currency", sa.String(), nullable=True),
-        sa.Column("is_active", sa.Boolean(), nullable=True),
-        sa.Column(
-            "state",
-            sa.Enum("draft", "ready", "archived", name="datasetstate"),
-            nullable=False,
-        ),
-        sa.Column(
-            "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=True,
-        ),
-        sa.Column(
-            "updated_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=True,
-        ),
-        sa.ForeignKeyConstraint(
-            ["accommodation_id"],
-            ["accommodations.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["org_id"],
-            ["organizations.org_id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["source_upload_id"],
-            ["uploads.upload_id"],
-        ),
-        sa.PrimaryKeyConstraint("dataset_id"),
     )
     op.create_table(
         "market_reports",
@@ -332,7 +348,7 @@ def upgrade() -> None:
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(
             ["aggregated_product_id"],
@@ -349,34 +365,69 @@ def upgrade() -> None:
         sa.Column("product_id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=True),
+        sa.Column("year", sa.Integer(), nullable=False),
         sa.Column("accommodation_id", sa.Integer(), nullable=False),
         sa.Column("template_name", sa.String(), nullable=False),
         sa.Column("preview_config", sa.JSON(), nullable=True),
-        sa.Column("price_money", sa.Integer(), nullable=False),
-        sa.Column("is_public", sa.Boolean(), nullable=True),
-        sa.Column("is_featured", sa.Boolean(), nullable=True),
-        sa.Column(
-            "status",
-            sa.Enum("active", "inactive", name="rawproductstatus"),
-            nullable=False,
-        ),
+        sa.Column("price_points", sa.Integer(), nullable=False),
+        sa.Column("is_public", sa.Boolean(), nullable=False),
+        sa.Column("is_featured", sa.Boolean(), nullable=False),
+        sa.Column("is_active", sa.Boolean(), server_default="true", nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.Column(
             "updated_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(
             ["accommodation_id"],
             ["accommodations.id"],
         ),
         sa.PrimaryKeyConstraint("product_id"),
+    )
+    op.create_table(
+        "uploads",
+        sa.Column("upload_id", sa.Integer(), nullable=False),
+        sa.Column("accommodation_id", sa.Integer(), nullable=False),
+        sa.Column("org_id", sa.Integer(), nullable=False),
+        sa.Column(
+            "status",
+            sa.Enum(
+                "pending", "processing", "completed", "failed", name="upload_status"
+            ),
+            nullable=False,
+        ),
+        sa.Column("error_message", sa.String(), nullable=True),
+        sa.Column("file_path", sa.String(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column("is_active", sa.Boolean(), server_default="true", nullable=False),
+        sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["accommodation_id"],
+            ["accommodations.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["org_id"],
+            ["organizations.org_id"],
+        ),
+        sa.PrimaryKeyConstraint("upload_id"),
     )
     op.create_table(
         "accommodation_reports",
@@ -387,7 +438,7 @@ def upgrade() -> None:
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(
             ["org_id"],
@@ -402,30 +453,76 @@ def upgrade() -> None:
     op.create_table(
         "capacity_changes",
         sa.Column("event_id", sa.Integer(), nullable=False),
-        sa.Column("old_room_count", sa.Integer(), nullable=True),
-        sa.Column("new_room_count", sa.Integer(), nullable=True),
+        sa.Column("old_room_count", sa.Integer(), nullable=False),
+        sa.Column("new_room_count", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(
-            ["event_id"],
-            ["accommodation_events.event_id"],
+            ["event_id"], ["accommodation_events.event_id"], ondelete="CASCADE"
         ),
         sa.PrimaryKeyConstraint("event_id"),
     )
     op.create_table(
         "category_changes",
         sa.Column("event_id", sa.Integer(), nullable=False),
-        sa.Column("old_value", sa.Integer(), nullable=True),
-        sa.Column("new_value", sa.Integer(), nullable=True),
+        sa.Column("old_value", sa.Float(), nullable=False),
+        sa.Column("new_value", sa.Float(), nullable=False),
         sa.Column(
-            "old_system", sa.Enum("stars", "keys", name="categorysystem"), nullable=True
+            "old_system",
+            sa.Enum("stars", "keys", name="categorysystem"),
+            nullable=False,
         ),
         sa.Column(
-            "new_system", sa.Enum("stars", "keys", name="categorysystem"), nullable=True
+            "new_system",
+            sa.Enum("stars", "keys", name="categorysystem"),
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(
-            ["event_id"],
-            ["accommodation_events.event_id"],
+            ["event_id"], ["accommodation_events.event_id"], ondelete="CASCADE"
         ),
         sa.PrimaryKeyConstraint("event_id"),
+    )
+    op.create_table(
+        "datasets",
+        sa.Column("dataset_id", sa.Integer(), nullable=False),
+        sa.Column("org_id", sa.Integer(), nullable=False),
+        sa.Column("accommodation_id", sa.Integer(), nullable=False),
+        sa.Column("source_upload_id", sa.Integer(), nullable=True),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("granularity", sa.String(), nullable=True),
+        sa.Column("period_start", sa.Date(), nullable=True),
+        sa.Column("period_end", sa.Date(), nullable=True),
+        sa.Column("storage_path", sa.String(), nullable=False),
+        sa.Column("currency", sa.String(), nullable=True),
+        sa.Column("is_active", sa.Boolean(), nullable=False),
+        sa.Column(
+            "state",
+            sa.Enum("draft", "ready", "archived", name="datasetstate"),
+            nullable=False,
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["accommodation_id"],
+            ["accommodations.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["org_id"],
+            ["organizations.org_id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["source_upload_id"],
+            ["uploads.upload_id"],
+        ),
+        sa.PrimaryKeyConstraint("dataset_id"),
     )
     op.create_table(
         "entitlements",
@@ -435,16 +532,17 @@ def upgrade() -> None:
         sa.Column("raw_product_id", sa.Integer(), nullable=True),
         sa.Column(
             "entitlement_type",
-            sa.Enum("points", "purchase", "granted", name="entitlementtype"),
+            sa.Enum("points", "granted", name="entitlementtype"),
             nullable=False,
         ),
         sa.Column(
             "granted_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("is_active", sa.Boolean(), server_default="true", nullable=False),
         sa.ForeignKeyConstraint(
             ["aggregated_product_id"],
             ["aggregated_products.product_id"],
@@ -465,7 +563,7 @@ def upgrade() -> None:
         sa.Column(
             "renovation_type",
             sa.Enum("partial", "full", name="renovationtype"),
-            nullable=True,
+            nullable=False,
         ),
         sa.Column(
             "renovation_scope",
@@ -477,84 +575,19 @@ def upgrade() -> None:
                 "full_property",
                 name="renovationscope",
             ),
-            nullable=True,
-        ),
-        sa.Column("cost", sa.Float(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["event_id"],
-            ["accommodation_events.event_id"],
-        ),
-        sa.PrimaryKeyConstraint("event_id"),
-    )
-    op.create_table(
-        "transactions",
-        sa.Column("transaction_id", sa.Integer(), nullable=False),
-        sa.Column("org_id", sa.Integer(), nullable=False),
-        sa.Column(
-            "transaction_type",
-            sa.Enum("points_purchase", "raw_access", name="transactiontype"),
             nullable=False,
         ),
-        sa.Column("amount", sa.Integer(), nullable=False),
-        sa.Column("points_awarded", sa.Integer(), nullable=True),
-        sa.Column("raw_product_id", sa.Integer(), nullable=True),
-        sa.Column("stripe_payment_id", sa.String(), nullable=True),
-        sa.Column(
-            "status",
-            sa.Enum(
-                "pending", "completed", "failed", "refunded", name="transactionstatus"
-            ),
-            nullable=False,
-        ),
-        sa.Column(
-            "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=True,
-        ),
-        sa.Column(
-            "updated_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=True,
-        ),
+        sa.Column("cost", sa.Float(), nullable=False),
         sa.ForeignKeyConstraint(
-            ["org_id"],
-            ["organizations.org_id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["raw_product_id"],
-            ["raw_products.product_id"],
-        ),
-        sa.PrimaryKeyConstraint("transaction_id"),
-    )
-    op.create_table(
-        "type_changes",
-        sa.Column("event_id", sa.Integer(), nullable=False),
-        sa.Column(
-            "old_type",
-            sa.Enum(
-                "hotel", "hostel", "aparthotel", "resort", name="accommodationtype"
-            ),
-            nullable=True,
-        ),
-        sa.Column(
-            "new_type",
-            sa.Enum(
-                "hotel", "hostel", "aparthotel", "resort", name="accommodationtype"
-            ),
-            nullable=True,
-        ),
-        sa.ForeignKeyConstraint(
-            ["event_id"],
-            ["accommodation_events.event_id"],
+            ["event_id"], ["accommodation_events.event_id"], ondelete="CASCADE"
         ),
         sa.PrimaryKeyConstraint("event_id"),
     )
     op.create_table(
         "revenue_distributions",
         sa.Column("distribution_id", sa.Integer(), nullable=False),
-        sa.Column("transaction_id", sa.Integer(), nullable=False),
+        sa.Column("raw_product_id", sa.Integer(), nullable=False),
+        sa.Column("buyer_org_id", sa.Integer(), nullable=False),
         sa.Column("org_id", sa.Integer(), nullable=False),
         sa.Column("accommodation_id", sa.Integer(), nullable=False),
         sa.Column("amount", sa.Integer(), nullable=False),
@@ -571,71 +604,111 @@ def upgrade() -> None:
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.Column(
             "updated_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=True,
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(
             ["accommodation_id"],
             ["accommodations.id"],
         ),
         sa.ForeignKeyConstraint(
+            ["buyer_org_id"],
+            ["organizations.org_id"],
+        ),
+        sa.ForeignKeyConstraint(
             ["org_id"],
             ["organizations.org_id"],
         ),
         sa.ForeignKeyConstraint(
-            ["transaction_id"],
-            ["transactions.transaction_id"],
+            ["raw_product_id"],
+            ["raw_products.product_id"],
         ),
         sa.PrimaryKeyConstraint("distribution_id"),
+    )
+    op.create_table(
+        "type_changes",
+        sa.Column("event_id", sa.Integer(), nullable=False),
+        sa.Column(
+            "old_type",
+            sa.Enum(
+                "hotel", "hostel", "aparthotel", "resort", name="accommodationtype"
+            ),
+            nullable=False,
+        ),
+        sa.Column(
+            "new_type",
+            sa.Enum(
+                "hotel", "hostel", "aparthotel", "resort", name="accommodationtype"
+            ),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["event_id"], ["accommodation_events.event_id"], ondelete="CASCADE"
+        ),
+        sa.PrimaryKeyConstraint("event_id"),
+    )
+    op.execute("ALTER TYPE eventtype ADD VALUE IF NOT EXISTS 'created'")
+    op.create_table(
+        "creation_events",
+        sa.Column(
+            "event_id",
+            sa.INTEGER(),
+            sa.ForeignKey("accommodation_events.event_id", ondelete="CASCADE"),
+            primary_key=True,
+        ),
+        sa.Column(
+            "initial_type",
+            postgresql.ENUM(
+                "hotel",
+                "hostel",
+                "aparthotel",
+                "resort",
+                name="accommodationtype",
+                create_type=False,
+            ),
+            nullable=False,
+        ),
+        sa.Column(
+            "initial_category_system",
+            postgresql.ENUM("stars", "keys", name="categorysystem", create_type=False),
+            nullable=False,
+        ),
+        sa.Column("initial_category_value", sa.Float(), nullable=False),
+        sa.Column("initial_room_count", sa.INTEGER(), nullable=False),
     )
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
-    op.drop_table("revenue_distributions")
+    """Downgrade schema."""
+    # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table("type_changes")
-    op.execute("DROP TABLE IF EXISTS transactions")
+    op.drop_table("revenue_distributions")
     op.drop_table("renovations")
     op.drop_table("entitlements")
+    op.drop_table("datasets")
     op.drop_table("category_changes")
     op.drop_table("capacity_changes")
     op.drop_table("accommodation_reports")
+    op.drop_table("uploads")
     op.drop_table("raw_products")
     op.drop_table("market_reports")
-    op.drop_table("datasets")
     op.drop_table("data_sharing_consents")
     op.drop_table("accommodation_tags")
     op.drop_table("accommodation_events")
     op.drop_table("users")
-    op.drop_table("uploads")
+    op.drop_table("points_ledger")
+    op.drop_table("payment_records")
+    op.drop_table("invitations")
     op.drop_table("aggregated_products")
     op.drop_table("accommodations")
     op.drop_table("tags")
     op.drop_table("organizations")
     op.drop_table("aggregations")
-    # Eliminar todos los enums
-    op.execute("DROP TYPE IF EXISTS aggregationstatus")
-    op.execute("DROP TYPE IF EXISTS organizationtype")
-    op.execute("DROP TYPE IF EXISTS accommodationtype")
-    op.execute("DROP TYPE IF EXISTS categorysystem")
-    op.execute("DROP TYPE IF EXISTS eventtype")
-    op.execute("DROP TYPE IF EXISTS upload_status")
-    op.execute("DROP TYPE IF EXISTS datasetstate")
-    op.execute("DROP TYPE IF EXISTS rawproductstatus")
-    op.execute("DROP TYPE IF EXISTS aggregatedproductstatus")
-    op.execute("DROP TYPE IF EXISTS entitlementtype")
-    op.execute("DROP TYPE IF EXISTS revenuedistributionstatus")
-    op.execute("DROP TYPE IF EXISTS paymentstatus")
-    op.execute("DROP TYPE IF EXISTS pointsreason")
-    op.execute("DROP TYPE IF EXISTS userrole")
-    op.execute("DROP TYPE IF EXISTS tagcategory")
-    op.execute("DROP TYPE IF EXISTS transactiontype")
-    op.execute("DROP TYPE IF EXISTS transactionstatus")
-    op.execute("DROP TYPE IF EXISTS renovationtype")
-    op.execute("DROP TYPE IF EXISTS renovationscope")
-    op.execute("DROP TYPE IF EXISTS invitationstatus")
+    op.drop_table("creation_events")
+    # ### end Alembic commands ###
