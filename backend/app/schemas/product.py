@@ -3,6 +3,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.models.markeplace.aggregated_product import AggregatedProductStatus
 from app.models.accommodation.accommodation import CategorySystem, AccommodationType
+from app.models.data.accommodation_data import GranularityType
 
 
 class AggregatedProductResponse(BaseModel):
@@ -28,6 +29,8 @@ class RawProductResponse(BaseModel):
     product_id: int
     name: str
     description: str | None
+    year: int
+    granularity: GranularityType
     accommodation_id: int
     template_name: str
     preview_config: dict | None
@@ -54,4 +57,5 @@ class RawProductFilters(BaseModel):
     model_config = ConfigDict(extra="forbid")
     accommodation_id: int | None = None
     year: int | None = None
+    granularity: GranularityType | None = None
     purchasable: bool | None = None

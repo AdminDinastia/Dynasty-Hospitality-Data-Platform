@@ -1,11 +1,12 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ForeignKey, DateTime, JSON
+from sqlalchemy import ForeignKey, DateTime, JSON, Enum
 from sqlalchemy.sql import func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.models.data.accommodation_data import GranularityType
 
 
 class RawProduct(Base):
@@ -15,6 +16,9 @@ class RawProduct(Base):
     name: Mapped[str] = mapped_column(nullable=False)
     description: Mapped[str | None] = mapped_column(nullable=True)
     year: Mapped[int] = mapped_column(nullable=False)
+    granularity: Mapped[GranularityType] = mapped_column(
+        Enum(GranularityType), nullable=False
+    )
 
     # Specific hotel this product refers to
     accommodation_id: Mapped[int] = mapped_column(

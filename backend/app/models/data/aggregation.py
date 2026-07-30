@@ -26,6 +26,7 @@ class Aggregation(Base):
     # {"level": "city", "location": "Gran Canaria"}
 
     storage_path: Mapped[str | None] = mapped_column(nullable=True)
+    is_precomputed: Mapped[bool] = mapped_column(default=True, server_default="true")
     status: Mapped[AggregationStatus] = mapped_column(
         Enum(AggregationStatus), nullable=False, default=AggregationStatus.pending
     )

@@ -26,7 +26,9 @@ from app.models.billing.payment_record import PaymentRecord
 from app.models.tags.tag import Tag
 
 from app.models.data.upload import Upload
-from app.models.data.dataset import Dataset
+from app.models.data.accommodation_data import AccommodationData
+from app.models.data.external_data import ExternalData
+from app.models.data.aggregation_source import AggregationSource
 from app.models.data.aggregation import Aggregation
 
 from app.models.markeplace.aggregated_product import AggregatedProduct
