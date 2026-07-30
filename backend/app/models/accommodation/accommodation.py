@@ -45,6 +45,7 @@ class Accommodation(Base):
         "Tag", secondary="accommodation_tags", back_populates="accommodations"
     )
     current_room_count: Mapped[int | None] = mapped_column(nullable=True)
+    building_year: Mapped[int | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
