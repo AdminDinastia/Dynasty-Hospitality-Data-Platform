@@ -8,7 +8,6 @@ from app.models.accommodation.accommodation import Accommodation
 from app.models.billing.entitlement import Entitlement, EntitlementType
 from app.models.billing.points_ledger import PointsLedger, PointsReason
 from app.models.core.organization import Organization
-from app.models.markeplace import raw_product
 from app.models.markeplace.aggregated_product import AggregatedProduct
 from app.models.markeplace.raw_product import RawProduct
 from app.models.accommodation.data_sharing_consent import DataSharingConsent
@@ -107,6 +106,9 @@ async def get_raw_products(
             DataSharingConsent,
             RawProduct.accommodation_id == DataSharingConsent.accommodation_id,
         ).where(DataSharingConsent.allow_raw_sharing)
+
+    if filters.granularity:
+        query = query.where(RawProduct.granularity == filters.granularity)
 
     result = await session.execute(query)
     raw_product = result.scalars().all()

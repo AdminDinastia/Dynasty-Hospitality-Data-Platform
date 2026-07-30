@@ -5,7 +5,7 @@ from app.api.v1 import (
     accommodations,
     events,
     uploads,
-    datasets,
+    accommodation_data,
     products,
     entitlements,
     points,
@@ -20,7 +20,7 @@ router.include_router(auth.router)
 router.include_router(accommodations.router)
 router.include_router(events.router)
 router.include_router(uploads.router)
-router.include_router(datasets.router)
+router.include_router(accommodation_data.router)
 router.include_router(products.router)
 router.include_router(entitlements.router)
 router.include_router(points.router)
