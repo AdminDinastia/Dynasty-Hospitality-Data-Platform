@@ -13,6 +13,7 @@ class AccommodationCreate(BaseModel):
     category_value: float
     current_room_count: int
     location: dict[str, Any] | None = None
+    building_year: int
     tag_ids: Optional[List[int]] = []
 
 
@@ -25,6 +26,7 @@ class AccommodationResponse(BaseModel):
     category_value: float
     current_room_count: int
     location: dict[str, Any] | None
+    building_year: int
     id: int
     org_id: int
     created_at: datetime
@@ -40,4 +42,5 @@ class AccommodationUpdate(BaseModel):
     category_value: Optional[float] = None
     current_room_count: Optional[int] = None
     location: dict[str, Any] | None = None
+    building_year: int | None = None
     tag_ids: Optional[List[int]] = []

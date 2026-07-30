@@ -4,9 +4,15 @@ from app.models.core.invitation import Invitation
 
 from app.models.accommodation.accommodation import Accommodation
 from app.models.accommodation.accommodation_tag import AccommodationTag
+from app.models.accommodation.accommodation_details import AccommodationDetails
+from app.models.accommodation.distribution_channels import DistributionChannel
+from app.models.accommodation.room_types import RoomType
+from app.models.accommodation.revenue_breakdown import RevenueBreakdown
+
 from app.models.accommodation.data_sharing_consent import DataSharingConsent
 
 from app.models.accommodation.events.accommodation_event import AccommodationEvent
+from app.models.accommodation.events.creation_event import CreationEvent
 from app.models.accommodation.events.capacity_change import CapacityChange
 from app.models.accommodation.events.category_change import CategoryChange
 from app.models.accommodation.events.renovation import Renovation
