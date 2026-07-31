@@ -198,13 +198,19 @@ async def create_distribution_channel(
 
 
 async def get_distribution_channels(
-    session: AsyncSession, accommodation_id: int, year: int | None = None
+    session: AsyncSession,
+    accommodation_id: int,
+    year: int | None = None,
+    include_historical: bool = False,
 ) -> Sequence[DistributionChannel]:
     dc_query = select(DistributionChannel).where(
         DistributionChannel.accommodation_id == accommodation_id
     )
     if year:
-        dc_query = dc_query.where(DistributionChannel.year == year)
+        if include_historical:
+            dc_query = dc_query.where(DistributionChannel.year <= year)
+        else:
+            dc_query = dc_query.where(DistributionChannel.year == year)
     dc_result = await session.execute(dc_query)
     distribution_channels = dc_result.scalars().all()
 
@@ -273,13 +279,22 @@ async def create_revenue_breakdowns(
 
 
 async def get_revenue_breakdowns(
-    session: AsyncSession, accommodation_id: int, year: int | None = None
+    session: AsyncSession,
+    accommodation_id: int,
+    year: int | None = None,
+    include_historical: bool = False,
 ) -> Sequence[RevenueBreakdown]:
     rb_query = select(RevenueBreakdown).where(
         RevenueBreakdown.accommodation_id == accommodation_id
     )
     if year:
         rb_query = rb_query.where(RevenueBreakdown.year == year)
+
+    if year:
+        if include_historical:
+            rb_query = rb_query.where(RevenueBreakdown.year <= year)
+        else:
+            rb_query = rb_query.where(RevenueBreakdown.year == year)
 
     rb_result = await session.execute(rb_query)
     revenue_breakdowns = rb_result.scalars().all()
@@ -331,15 +346,23 @@ async def create_accommodation_details(
 
 
 async def get_accommodation_details(
-    session: AsyncSession, accommodation_id: int, year: int | None = None
+    session: AsyncSession,
+    accommodation_id: int,
+    year: int | None = None,
+    include_historical: bool = False,
 ) -> Sequence[AccommodationDetails]:
     accommodation_details_query = select(AccommodationDetails).where(
         AccommodationDetails.accommodation_id == accommodation_id
     )
     if year:
-        accommodation_details_query = accommodation_details_query.where(
-            AccommodationDetails.year == year
-        )
+        if include_historical:
+            accommodation_details_query = accommodation_details_query.where(
+                AccommodationDetails.year <= year
+            )
+        else:
+            accommodation_details_query = accommodation_details_query.where(
+                AccommodationDetails.year == year
+            )
 
     accommodation_details_result = await session.execute(accommodation_details_query)
     accommodation_details = accommodation_details_result.scalars().all()

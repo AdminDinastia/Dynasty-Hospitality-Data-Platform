@@ -28,8 +28,10 @@ async def get_dataset(
 async def get_datasets(
     session: AsyncSession,
     org_id: int,
+    year: int | None = None,
     state: AccommodationDataState | None = None,
     accommodation_id: int | None = None,
+    include_historical: bool = False,
 ) -> Sequence[AccommodationData]:
     query = (
         select(AccommodationData)
@@ -42,6 +44,12 @@ async def get_datasets(
 
     if state:
         query = query.where(AccommodationData.state == state)
+
+    if year:
+        if include_historical:
+            query = query.where(AccommodationData.year <= year)
+        else:
+            query = query.where(AccommodationData.year == year)
 
     result = await session.execute(query)
     datasets = result.scalars().all()
