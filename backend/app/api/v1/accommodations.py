@@ -21,6 +21,10 @@ from app.schemas.accommodation_extended import (
     DistributionChannelResponse,
     RevenueBreakdownCreate,
     RevenueBreakdownResponse,
+    AccommodationThemeCreate,
+    AccommodationThemeResponse,
+    AccommodationCertificationCreate,
+    AccommodationCertificationResponse,
 )
 
 
@@ -53,7 +57,6 @@ async def create_accommodation(
     if accommodation.org_id != user.org_id:
         raise HTTPException(status_code=403, detail="Not authorized.")
     response = AccommodationResponse.model_validate(accommodation)
-    response.tags = [tag.name for tag in accommodation.tags]
     return response
 
 
@@ -65,23 +68,7 @@ async def get_accommodations(
     accommodations = await accommodation_service.get_accommodations(
         session, user.org_id
     )
-    return [
-        AccommodationResponse(
-            name=a.name,
-            location=a.location,
-            type=a.type,
-            category_system=a.category_system,
-            category_value=a.category_value,
-            current_room_count=a.current_room_count,
-            id=a.id,
-            org_id=a.org_id,
-            created_at=a.created_at,
-            updated_at=a.updated_at,
-            building_year=a.building_year,
-            tags=[tag.name for tag in a.tags],
-        )
-        for a in accommodations
-    ]
+    return [AccommodationResponse.model_validate(a) for a in accommodations]
 
 
 @router.get("/{accommodation_id}")
@@ -95,19 +82,7 @@ async def get_accommodation(
     )
     if not accommodation:
         raise HTTPException(status_code=404, detail="Accommodation not found.")
-    return AccommodationResponse(
-        name=accommodation.name,
-        location=accommodation.location,
-        type=accommodation.type,
-        category_system=accommodation.category_system,
-        category_value=accommodation.category_value,
-        current_room_count=accommodation.current_room_count,
-        id=accommodation.id,
-        org_id=accommodation.org_id,
-        created_at=accommodation.created_at,
-        updated_at=accommodation.updated_at,
-        tags=[tag.name for tag in accommodation.tags],
-    )
+    return AccommodationResponse.model_validate(accommodation)
 
 
 @router.patch("/{accommodation_id}")
@@ -134,20 +109,7 @@ async def patch_accommodation(
     accommodation = await accommodation_service.update_accommodation(
         session, accommodation_id, data
     )
-
-    return AccommodationResponse(
-        name=accommodation.name,
-        location=accommodation.location,
-        type=accommodation.type,
-        category_system=accommodation.category_system,
-        category_value=accommodation.category_value,
-        current_room_count=accommodation.current_room_count,
-        id=accommodation.id,
-        org_id=accommodation.org_id,
-        created_at=accommodation.created_at,
-        updated_at=accommodation.updated_at,
-        tags=[tag.name for tag in accommodation.tags],
-    )
+    return AccommodationResponse.model_validate(accommodation)
 
 
 @router.patch("/{accommodation_id}/data-sharing")
@@ -559,3 +521,135 @@ async def update_accommodation_details(
         session=session, detail_id=detail_id, data=data
     )
     return AccommodationDetailsResponse.model_validate(accommodation_details)
+
+
+@router.post("/{accommodation_id}/themes")
+async def create_accommodation_theme(
+    accommodation_id: int,
+    data: AccommodationThemeCreate,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> AccommodationThemeResponse:
+    existing = await accommodation_service.get_accommodation(session, accommodation_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Accommodation not found.")
+    if existing.org_id != user.org_id:
+        raise HTTPException(status_code=403, detail="Not authorized.")
+    if user.role != UserRole.org_admin:
+        raise HTTPException(status_code=403, detail="Only org admins can add themes.")
+    theme = await accommodation_service.create_accommodation_theme(
+        session=session, accommodation_id=accommodation_id, data=data
+    )
+    return AccommodationThemeResponse.model_validate(theme)
+
+
+@router.get("/{accommodation_id}/themes")
+async def get_accommodation_themes(
+    accommodation_id: int,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> List[AccommodationThemeResponse]:
+    existing = await accommodation_service.get_accommodation(session, accommodation_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Accommodation not found.")
+    if existing.org_id != user.org_id:
+        raise HTTPException(status_code=403, detail="Not authorized.")
+    themes = await accommodation_service.get_accommodation_themes(
+        session=session, accommodation_id=accommodation_id
+    )
+    return [AccommodationThemeResponse.model_validate(t) for t in themes]
+
+
+@router.delete("/themes/{theme_id}")
+async def delete_accommodation_theme(
+    theme_id: int,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> bool:
+    theme = await accommodation_service.get_accommodation_theme(
+        session=session, theme_id=theme_id
+    )
+    if not theme:
+        raise HTTPException(status_code=404, detail="Theme not found.")
+    existing = await accommodation_service.get_accommodation(
+        session, theme.accommodation_id
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Accommodation not found.")
+    if existing.org_id != user.org_id:
+        raise HTTPException(status_code=403, detail="Not authorized.")
+    if user.role != UserRole.org_admin:
+        raise HTTPException(
+            status_code=403, detail="Only org admins can delete themes."
+        )
+    return await accommodation_service.delete_accommodation_theme(
+        session=session, theme_id=theme_id
+    )
+
+
+@router.post("/{accommodation_id}/certifications")
+async def create_accommodation_certification(
+    accommodation_id: int,
+    data: AccommodationCertificationCreate,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> AccommodationCertificationResponse:
+    existing = await accommodation_service.get_accommodation(session, accommodation_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Accommodation not found.")
+    if existing.org_id != user.org_id:
+        raise HTTPException(status_code=403, detail="Not authorized.")
+    if user.role != UserRole.org_admin:
+        raise HTTPException(
+            status_code=403, detail="Only org admins can add certifications."
+        )
+    certification = await accommodation_service.create_accommodation_certification(
+        session=session, accommodation_id=accommodation_id, data=data
+    )
+    return AccommodationCertificationResponse.model_validate(certification)
+
+
+@router.get("/{accommodation_id}/certifications")
+async def get_accommodation_certifications(
+    accommodation_id: int,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> List[AccommodationCertificationResponse]:
+    existing = await accommodation_service.get_accommodation(session, accommodation_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Accommodation not found.")
+    if existing.org_id != user.org_id:
+        raise HTTPException(status_code=403, detail="Not authorized.")
+    certifications = await accommodation_service.get_accommodation_certifications(
+        session=session, accommodation_id=accommodation_id
+    )
+    return [
+        AccommodationCertificationResponse.model_validate(c) for c in certifications
+    ]
+
+
+@router.delete("/certifications/{certification_id}")
+async def delete_accommodation_certification(
+    certification_id: int,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> bool:
+    certification = await accommodation_service.get_accommodation_certification(
+        session=session, certification_id=certification_id
+    )
+    if not certification:
+        raise HTTPException(status_code=404, detail="Certification not found.")
+    existing = await accommodation_service.get_accommodation(
+        session, certification.accommodation_id
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Accommodation not found.")
+    if existing.org_id != user.org_id:
+        raise HTTPException(status_code=403, detail="Not authorized.")
+    if user.role != UserRole.org_admin:
+        raise HTTPException(
+            status_code=403, detail="Only org admins can delete certifications."
+        )
+    return await accommodation_service.delete_accommodation_certification(
+        session=session, certification_id=certification_id
+    )

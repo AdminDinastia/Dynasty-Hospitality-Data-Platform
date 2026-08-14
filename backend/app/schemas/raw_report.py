@@ -1,5 +1,17 @@
+from typing import List, Optional, Union, Annotated
+
 from pydantic import BaseModel, Field
-from typing import List, Optional
+
+from app.schemas.event import (
+    CapacityChangeResponse,
+    CategoryChangeResponse,
+    RenovationChangeResponse,
+    TypeChangeResponse,
+    CreationEventResponse,
+)
+
+
+from app.models.accommodation.accommodation import OwnershipStructure
 
 # --- 1. Core Sub-models ---
 
@@ -13,10 +25,13 @@ class InventoryUnit(BaseModel):
 class Overview(BaseModel):
     total_units: int
     property_type: str
-    asset_class: str
+    asset_class: str | None = (
+        None  # STR Chain Scale - computed from ADR, requires pipeline
+    )
+    ownership_structure: OwnershipStructure | None = None
     rating_type: str
     rating_value: str
-    grade: str
+    grade: str | None = None
     year: int
     inventory_mix: List[InventoryUnit]
 
@@ -24,7 +39,7 @@ class Overview(BaseModel):
 # --- 2. Financials Sub-models ---
 
 
-class RevenueBreakdown(BaseModel):
+class RevenueBreakdownReport(BaseModel):
     department: str
     revenue: float
     percentage: float
@@ -54,7 +69,7 @@ class Financials(BaseModel):
     adr: float
     gop_margin: float
 
-    revenue_breakdown: List[RevenueBreakdown] = Field(
+    revenue_breakdown: List[RevenueBreakdownReport] = Field(
         description="Used to render the Revenue Waterfall chart showing department contributions."
     )
     historical_performance: List[YearlyPerformance] = Field(
@@ -76,10 +91,10 @@ class DayOfWeekOccupancy(BaseModel):
     occupancy: float
 
 
-class DistributionChannel(BaseModel):
+class DistributionChannelReport(BaseModel):
     channel_name: str
     booking_percentage: float
-    commission_cost: float
+    commission_cost: float | None = None
 
 
 class Operations(BaseModel):
@@ -91,7 +106,7 @@ class Operations(BaseModel):
     day_of_week_occupancy: List[DayOfWeekOccupancy] = Field(
         description="Feeds the Occupancy Heatmap (Days of the week vs. Occupancy density)."
     )
-    distribution_channels: List[DistributionChannel] = Field(
+    distribution_channels: List[DistributionChannelReport] = Field(
         description="Used to render the Distribution Channel Treemap or segmented Donut chart."
     )
 
@@ -122,13 +137,27 @@ class Valuation(BaseModel):
 
 class AssetEvent(BaseModel):
     date: str
+    event_type: str
     description: str
 
 
+AssetEventReport = Annotated[
+    Union[
+        CapacityChangeResponse,
+        CategoryChangeResponse,
+        RenovationChangeResponse,
+        TypeChangeResponse,
+        CreationEventResponse,
+    ],
+    Field(discriminator="event_type"),
+]
+
+
 class AssetStatus(BaseModel):
-    last_renovation_year: int
+    last_renovation_year: int | None = None
     building_age_years: int
-    next_estimated_renovation: int
+    # TODO: should this be setted by the user? or calculated?
+    next_estimated_renovation: int | None = None
     certifications: List[str]
 
 
@@ -139,11 +168,11 @@ class LocalMarketRisk(BaseModel):
 
 
 class HistoryAndRisk(BaseModel):
-    historical_events: List[AssetEvent] = Field(
+    historical_events: List[AssetEventReport] = Field(
         description="Iterated to render the Vertical Timeline UI component showing Capex and milestones."
     )
     asset_status: AssetStatus
-    local_market: LocalMarketRisk
+    local_market: LocalMarketRisk | None = None
 
 
 # --- 6. Satisfaction Sub-models ---
@@ -194,16 +223,17 @@ class RawReportResponse(BaseModel):
     property_name: str
     location: str
     overview: Overview
-    financials: Financials
-    operations: Operations
+    financials: Financials | None = None
+    operations: Operations | None = None
 
-    market_positioning: List[MarketComparison] = Field(
-        description="Used to render the Spider/Radar chart comparing the asset's silhouette against the market."
+    market_positioning: List[MarketComparison] | None = Field(
+        default=None,
+        description="Used to render the Spider/Radar chart comparing the asset's silhouette against the market.",
     )
 
-    valuation: Valuation
+    valuation: Valuation | None = None
     history_and_risk: HistoryAndRisk
-    satisfaction: SatisfactionAndTeam
+    satisfaction: SatisfactionAndTeam | None = None
 
     # Swagger / OpenAPI Example Configuration
     model_config = {

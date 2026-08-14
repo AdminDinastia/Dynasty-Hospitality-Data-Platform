@@ -135,6 +135,7 @@ async def get_events(
     session: AsyncSession,
     accommodation_id: int,
     event_type: EventType | None = None,
+    order_by_date_desc: bool = True,
 ) -> Sequence[AccommodationEvent]:
     query = (
         select(AccommodationEvent)
@@ -148,6 +149,9 @@ async def get_events(
     )
     if event_type:
         query = query.where(AccommodationEvent.event_type == event_type)
+
+    if order_by_date_desc:
+        query = query.order_by(AccommodationEvent.effective_date.desc())
 
     result = await session.execute(query)
     events = result.scalars().all()

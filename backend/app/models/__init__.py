@@ -3,8 +3,11 @@ from app.models.core.user import User
 from app.models.core.invitation import Invitation
 
 from app.models.accommodation.accommodation import Accommodation
-from app.models.accommodation.accommodation_tag import AccommodationTag
 from app.models.accommodation.accommodation_details import AccommodationDetails
+from app.models.accommodation.accommodation_certification import (
+    AccommodationCertification,
+)
+from app.models.accommodation.accommodation_theme import AccommodationTheme
 from app.models.accommodation.distribution_channels import DistributionChannel
 from app.models.accommodation.room_types import RoomType
 from app.models.accommodation.revenue_breakdown import RevenueBreakdown
@@ -22,8 +25,6 @@ from app.models.billing.entitlement import Entitlement
 from app.models.billing.revenue_distribution import RevenueDistribution
 from app.models.billing.points_ledger import PointsLedger
 from app.models.billing.payment_record import PaymentRecord
-
-from app.models.tags.tag import Tag
 
 from app.models.data.upload import Upload
 from app.models.data.accommodation_data import AccommodationData

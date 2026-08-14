@@ -1,4 +1,3 @@
-import enum
 from datetime import datetime
 
 from sqlalchemy import (
@@ -9,12 +8,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
-
-
-class AggregatedProductStatus(str, enum.Enum):
-    draft = "draft"
-    active = "active"
-    failed = "failed"
+from app.models.markeplace.product_status import ProductStatus
 
 
 class AggregatedProduct(Base):
@@ -31,10 +25,10 @@ class AggregatedProduct(Base):
 
     price_points: Mapped[int] = mapped_column(nullable=False)
     is_public: Mapped[bool] = mapped_column(default=True)
-    status: Mapped[AggregatedProductStatus] = mapped_column(
-        Enum(AggregatedProductStatus),
+    status: Mapped[ProductStatus] = mapped_column(
+        Enum(ProductStatus),
         nullable=False,
-        default=AggregatedProductStatus.draft,
+        default=ProductStatus.draft,
     )
 
     is_featured: Mapped[bool] = mapped_column(default=False)

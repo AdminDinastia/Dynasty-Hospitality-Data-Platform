@@ -1,7 +1,9 @@
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
-from app.models.markeplace.aggregated_product import AggregatedProductStatus
+from app.models.markeplace.product_status import ProductStatus
+
+
 from app.models.accommodation.accommodation import CategorySystem, AccommodationType
 from app.models.data.accommodation_data import GranularityType
 
@@ -19,7 +21,7 @@ class AggregatedProductResponse(BaseModel):
     is_public: bool
     is_active: bool
     is_featured: bool
-    status: AggregatedProductStatus
+    status: ProductStatus
     created_at: datetime
     updated_at: datetime
 
@@ -33,6 +35,7 @@ class RawProductResponse(BaseModel):
     granularity: GranularityType
     accommodation_id: int
     template_name: str
+    status: ProductStatus
     preview_config: dict | None
     price_points: int
     is_public: bool
@@ -46,6 +49,7 @@ class AggregatedProductFilters(BaseModel):
     nuts_code: str | None = None  # ES7, ES70, ES705 (level detected by lenght)
     city: str | None = None
     category_system: CategorySystem | None = None
+    status: ProductStatus | None = None
     min_category: float | None = None
     max_category: float | None = None
     type: AccommodationType | None = None
@@ -57,5 +61,6 @@ class RawProductFilters(BaseModel):
     model_config = ConfigDict(extra="forbid")
     accommodation_id: int | None = None
     year: int | None = None
+    status: ProductStatus | None = None
     granularity: GranularityType | None = None
     purchasable: bool | None = None

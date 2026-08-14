@@ -3,6 +3,8 @@ from pydantic import BaseModel, ConfigDict
 from app.models.accommodation.room_types import RoomCategory, RoomLevel
 from app.models.accommodation.distribution_channels import ChannelName
 from app.models.accommodation.revenue_breakdown import RevenueDepartment
+from app.models.accommodation.accommodation_theme import ThemeType
+from app.models.accommodation.accommodation_certification import CertificationType
 
 
 class RoomTypeCreate(BaseModel):
@@ -83,3 +85,27 @@ class AccommodationDetailsResponse(BaseModel):
     length_of_stay: float | None
     cpor: float | None
     employee_count: int | None
+
+
+class AccommodationThemeCreate(BaseModel):
+    theme_type: ThemeType
+
+
+class AccommodationThemeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    theme_id: int
+    theme_type: ThemeType
+
+
+class AccommodationCertificationCreate(BaseModel):
+    certification_type: CertificationType
+    custom_name: str | None = None
+    obtained_year: int | None = None
+
+
+class AccommodationCertificationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    certification_id: int
+    certification_type: CertificationType
+    custom_name: str | None
+    obtained_year: int | None

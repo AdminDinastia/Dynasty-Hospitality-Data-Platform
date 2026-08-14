@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 class ReportListItem(BaseModel):
-    entitlement_id: str
+    entitlement_id: int
     report_type: str  # e.g., "raw" (individual) or "aggregated" (market cluster)
     title: str  # e.g., "Hotel Santa Catalina" or "Canary Islands Market"
     period_type: str  # e.g., "Yearly", "Quarterly", "Monthly"

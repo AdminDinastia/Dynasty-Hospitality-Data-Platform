@@ -2,10 +2,12 @@ import enum
 from datetime import datetime
 from typing import Any
 
+from pydantic import BaseModel
 from sqlalchemy import JSON, Enum, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.models.accommodation.accommodation import CategorySystem, AccommodationType
 
 
 class AggregationStatus(str, enum.Enum):
@@ -13,6 +15,24 @@ class AggregationStatus(str, enum.Enum):
     computing = "computing"
     ready = "ready"
     failed = "failed"
+
+
+class AggregationParameters(BaseModel):
+    # Geographic
+    nuts1: str | None = None
+    nuts2: str | None = None
+    nuts3: str | None = None
+    country: str | None = None
+    city: str | None = None
+    # Chain
+    org_id: int | None = None
+    # Common filters
+    category_system: CategorySystem | None = None
+    min_category: float | None = None
+    max_category: float | None = None
+    type: AccommodationType | None = None
+    year_from: int | None = None
+    year_to: int | None = None
 
 
 class Aggregation(Base):

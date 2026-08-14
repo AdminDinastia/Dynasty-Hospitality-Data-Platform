@@ -1,9 +1,31 @@
-from typing import List, Optional, Any
+from typing import Optional, Any
 
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
-from app.models.accommodation.accommodation import AccommodationType, CategorySystem
+from app.models.accommodation.accommodation import (
+    AccommodationType,
+    CategorySystem,
+    OwnershipStructure,
+)
+
+
+class Location(BaseModel):
+    country: str
+    city: str
+    nuts1: str
+    nuts2: str
+    nuts3: str
+    lat: float
+    lon: float
+
+
+class LocationCreate(BaseModel):
+    country: str
+    city: str
+    nuts3: str
+    lat: float
+    lon: float
 
 
 class AccommodationCreate(BaseModel):
@@ -12,9 +34,9 @@ class AccommodationCreate(BaseModel):
     category_system: CategorySystem
     category_value: float
     current_room_count: int
-    location: dict[str, Any] | None = None
+    location: LocationCreate
     building_year: int
-    tag_ids: Optional[List[int]] = []
+    ownership_structure: OwnershipStructure
 
 
 # Accommodation Response
@@ -22,25 +44,25 @@ class AccommodationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     type: AccommodationType
+    ownership_structure: OwnershipStructure
     category_system: CategorySystem
     category_value: float
     current_room_count: int
-    location: dict[str, Any] | None
+    location: Location
     building_year: int
     id: int
     org_id: int
     created_at: datetime
     updated_at: datetime
-    tags: Optional[List[str]] = []
 
 
 # Accommodation Update
 class AccommodationUpdate(BaseModel):
     name: Optional[str] = None
     type: Optional[AccommodationType] = None
+    ownership_structure: OwnershipStructure | None = None
     category_system: Optional[CategorySystem] = None
     category_value: Optional[float] = None
     current_room_count: Optional[int] = None
-    location: dict[str, Any] | None = None
+    location: LocationCreate | None = None
     building_year: int | None = None
-    tag_ids: Optional[List[int]] = []

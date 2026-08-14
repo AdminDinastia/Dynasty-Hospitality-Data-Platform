@@ -10,6 +10,8 @@ from app.models.billing.points_ledger import PointsLedger, PointsReason
 from app.models.core.organization import Organization
 from app.models.markeplace.aggregated_product import AggregatedProduct
 from app.models.markeplace.raw_product import RawProduct
+
+from app.models.markeplace.product_status import ProductStatus
 from app.models.accommodation.data_sharing_consent import DataSharingConsent
 from app.models.billing.revenue_distribution import (
     RevenueDistribution,
@@ -66,6 +68,9 @@ async def get_aggregated_products(
     if filters.year_to:
         query = query.where(Aggregation.parameters["year_to"] <= filters.year_to)
 
+    if filters.status:
+        query = query.where(AggregatedProduct.status == filters.status)
+
     result = await session.execute(query)
 
     return result.scalars().all()
@@ -86,6 +91,10 @@ async def get_aggregated_product(
 
     if not agg_product:
         return None
+    if agg_product.status != ProductStatus.active:
+        raise HTTPException(
+            status_code=409, detail="This product's data is not ready yet."
+        )
 
     return agg_product
 
@@ -101,11 +110,18 @@ async def get_raw_products(
     if filters.year:
         query = query.where(RawProduct.year == filters.year)
 
+    if filters.status:
+        query = query.where(RawProduct.status == filters.status)
+
     if filters.purchasable:
-        query = query.join(
-            DataSharingConsent,
-            RawProduct.accommodation_id == DataSharingConsent.accommodation_id,
-        ).where(DataSharingConsent.allow_raw_sharing)
+        query = (
+            query.join(
+                DataSharingConsent,
+                RawProduct.accommodation_id == DataSharingConsent.accommodation_id,
+            )
+            .where(DataSharingConsent.allow_raw_sharing)
+            .where(RawProduct.status == ProductStatus.active)
+        )
 
     if filters.granularity:
         query = query.where(RawProduct.granularity == filters.granularity)
@@ -125,13 +141,14 @@ async def get_raw_product(
         .where(RawProduct.product_id == product_id)
         .where(RawProduct.is_active)
     )
-
     result = await session.execute(query)
     raw_pr = result.scalar_one_or_none()
-
     if not raw_pr:
         return None
-
+    if raw_pr.status != ProductStatus.active:
+        raise HTTPException(
+            status_code=409, detail="This product's data is not ready yet."
+        )
     return raw_pr
 
 
@@ -156,6 +173,11 @@ async def purchase_aggregated_product(
 
     if not (org.points_balance >= product.price_points):
         raise HTTPException(status_code=403, detail="Insufficient points.")
+
+    if product.status != ProductStatus.active:
+        raise HTTPException(
+            status_code=409, detail="This product is not ready to purchase yet."
+        )
 
     query = (
         select(Entitlement)
@@ -215,6 +237,11 @@ async def purchase_raw_product(
 
     if not (org.points_balance >= product.price_points):
         raise HTTPException(status_code=403, detail="Insufficient points.")
+
+    if product.status != ProductStatus.active:
+        raise HTTPException(
+            status_code=409, detail="This product is not ready to purchase yet."
+        )
 
     query = (
         select(Entitlement)

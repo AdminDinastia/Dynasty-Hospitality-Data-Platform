@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 from app.models.data.accommodation_data import GranularityType
+from app.models.markeplace.product_status import ProductStatus
 
 
 class RawProduct(Base):
@@ -23,6 +24,12 @@ class RawProduct(Base):
     # Specific hotel this product refers to
     accommodation_id: Mapped[int] = mapped_column(
         ForeignKey("accommodations.id"), nullable=False
+    )
+    status: Mapped[ProductStatus] = mapped_column(
+        Enum(ProductStatus),
+        nullable=False,
+        default=ProductStatus.draft,
+        server_default="draft",
     )
 
     # Reference to JSON template in repo
