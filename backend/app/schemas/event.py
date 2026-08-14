@@ -64,11 +64,13 @@ class BaseEventResponse(BaseModel):
 
 
 class CapacityChangeResponse(BaseEventResponse):
+    event_type: Literal["capacity_change"] = "capacity_change"
     old_room_count: int
     new_room_count: int
 
 
 class CategoryChangeResponse(BaseEventResponse):
+    event_type: Literal["category_change"] = "category_change"
     old_value: float
     new_value: float
 
@@ -77,17 +79,20 @@ class CategoryChangeResponse(BaseEventResponse):
 
 
 class RenovationChangeResponse(BaseEventResponse):
+    event_type: Literal["renovation"] = "renovation"
     renovation_type: RenovationType
     renovation_scope: RenovationScope
     cost: float
 
 
 class TypeChangeResponse(BaseEventResponse):
+    event_type: Literal["type_change"] = "type_change"
     old_type: AccommodationType
     new_type: AccommodationType
 
 
 class CreationEventResponse(BaseEventResponse):
+    event_type: Literal["created"] = "created"
     initial_type: AccommodationType
     initial_category_system: CategorySystem
     initial_category_value: float

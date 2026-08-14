@@ -40,11 +40,15 @@ async def get_datasets(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
     accommodation_id: int | None = None,
+    year: int | None = None,
     state: AccommodationDataState | None = None,
+    include_historical: bool = False,
 ):
     datasets = await accommodation_data_service.get_datasets(
         session=session,
         org_id=user.org_id,
+        year=year,
+        include_historical=include_historical,
         accommodation_id=accommodation_id,
         state=state,
     )

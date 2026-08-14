@@ -12,7 +12,22 @@ from sqlalchemy import (
 )
 
 from app.core.database import Base
-from app.models.tags.tag import Tag
+from app.models.accommodation.accommodation_theme import AccommodationTheme
+from app.models.accommodation.accommodation_certification import (
+    AccommodationCertification,
+)
+
+
+class OwnershipStructure(str, enum.Enum):
+    direct_ownership = "direct_ownership"  # owner operates the property directly
+    management_contract = (
+        "management_contract"  # operated by a brand/operator, owned by a third party
+    )
+    franchise = "franchise"  # independently owned, operates under a brand franchise
+    manchise = "manchise"  # hybrid: management contract that converts to franchise after an initial period, common in Spain
+    lease = "lease"  # operator leases the property from the owner
+    timeshare = "timeshare"  # fractional/shared ownership
+    condo_hotel = "condo_hotel"  # units sold individually, centrally managed
 
 
 class AccommodationType(str, enum.Enum):
@@ -41,8 +56,14 @@ class Accommodation(Base):
         Enum(CategorySystem), nullable=True
     )
     category_value: Mapped[float | None] = mapped_column(nullable=True)
-    tags: Mapped[list["Tag"]] = relationship(
-        "Tag", secondary="accommodation_tags", back_populates="accommodations"
+    ownership_structure: Mapped[OwnershipStructure] = mapped_column(
+        Enum(OwnershipStructure), nullable=True
+    )
+    themes: Mapped[list["AccommodationTheme"]] = relationship(
+        "AccommodationTheme", cascade="all, delete-orphan"
+    )
+    certifications: Mapped[list["AccommodationCertification"]] = relationship(
+        "AccommodationCertification", cascade="all, delete-orphan"
     )
     current_room_count: Mapped[int | None] = mapped_column(nullable=True)
     building_year: Mapped[int | None] = mapped_column(nullable=True)

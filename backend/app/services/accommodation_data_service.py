@@ -1,7 +1,7 @@
 from typing import Sequence
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import select, extract
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.data.accommodation_data import AccommodationData, AccommodationDataState
@@ -28,8 +28,10 @@ async def get_dataset(
 async def get_datasets(
     session: AsyncSession,
     org_id: int,
+    year: int | None = None,
     state: AccommodationDataState | None = None,
     accommodation_id: int | None = None,
+    include_historical: bool = False,
 ) -> Sequence[AccommodationData]:
     query = (
         select(AccommodationData)
@@ -42,6 +44,12 @@ async def get_datasets(
 
     if state:
         query = query.where(AccommodationData.state == state)
+
+    if year:
+        if include_historical:
+            query = query.where(extract("year", AccommodationData.period_start) <= year)
+        else:
+            query = query.where(extract("year", AccommodationData.period_start) == year)
 
     result = await session.execute(query)
     datasets = result.scalars().all()

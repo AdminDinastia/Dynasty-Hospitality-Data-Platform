@@ -5,13 +5,20 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.tags.tag import Tag
 from app.models.accommodation.accommodation import Accommodation
 from app.models.accommodation.accommodation_details import AccommodationDetails
 from app.models.accommodation.room_types import RoomType
 from app.models.accommodation.distribution_channels import DistributionChannel
 from app.models.accommodation.revenue_breakdown import RevenueBreakdown
 from app.services import data_sharing_service
+from app.models.accommodation.accommodation_theme import AccommodationTheme
+from app.models.accommodation.accommodation_certification import (
+    AccommodationCertification,
+)
+from app.schemas.accommodation_extended import (
+    AccommodationThemeCreate,
+    AccommodationCertificationCreate,
+)
 
 from app.schemas.accommodation import AccommodationCreate, AccommodationUpdate
 from app.schemas.accommodation_extended import (
@@ -30,18 +37,17 @@ async def create_accommodation(
     data: AccommodationCreate,
     org_id: int,
 ) -> Accommodation:
-    query = select(Tag).where(Tag.id.in_(data.tag_ids))
-    result = await session.execute(query)
-    tags = result.scalars().all()
+    location_dict = data.location.model_dump()
+    location_dict["nuts1"] = data.location.nuts3[:3]
+    location_dict["nuts2"] = data.location.nuts3[:4]
 
     new_accommodation = Accommodation(
         name=data.name,
         org_id=org_id,
-        location=data.location,
+        location=location_dict,
         type=data.type,
         category_system=data.category_system,
         category_value=data.category_value,
-        tags=tags,
         current_room_count=data.current_room_count,
         building_year=data.building_year,
     )
@@ -64,7 +70,6 @@ async def get_accommodations(
         select(Accommodation)
         .where(Accommodation.org_id == org_id)
         .where(Accommodation.is_active)
-        .options(selectinload(Accommodation.tags))
     )
     result = await session.execute(query)
     accommodations = result.scalars().all()
@@ -80,7 +85,6 @@ async def get_accommodation(
         select(Accommodation)
         .where(Accommodation.id == accommodation_id)
         .where(Accommodation.is_active)
-        .options(selectinload(Accommodation.tags))
     )
     result = await session.execute(query)
     accommodation = result.scalar_one_or_none()
@@ -91,11 +95,7 @@ async def get_accommodation(
 async def update_accommodation(
     session: AsyncSession, accommodation_id: int, data: AccommodationUpdate
 ) -> Accommodation | None:
-    query = (
-        select(Accommodation)
-        .where(Accommodation.id == accommodation_id)
-        .options(selectinload(Accommodation.tags))
-    )
+    query = select(Accommodation).where(Accommodation.id == accommodation_id)
     result = await session.execute(query)
     accommodation = result.scalar_one_or_none()
 
@@ -104,11 +104,11 @@ async def update_accommodation(
 
     update_data = data.model_dump(exclude_unset=True)
 
-    if "tag_ids" in update_data:
-        tag_ids = update_data.pop("tag_ids")
-        tags_query = select(Tag).where(Tag.id.in_(tag_ids))
-        tags_result = await session.execute(tags_query)
-        accommodation.tags = list(tags_result.scalars().all())
+    if "location" in update_data and update_data["location"]:
+        loc = update_data["location"]
+        loc["nuts1"] = loc["nuts3"][:3]
+        loc["nuts2"] = loc["nuts3"][:4]
+        update_data["location"] = loc
 
     for field, value in update_data.items():
         setattr(accommodation, field, value)
@@ -198,13 +198,19 @@ async def create_distribution_channel(
 
 
 async def get_distribution_channels(
-    session: AsyncSession, accommodation_id: int, year: int | None = None
+    session: AsyncSession,
+    accommodation_id: int,
+    year: int | None = None,
+    include_historical: bool = False,
 ) -> Sequence[DistributionChannel]:
     dc_query = select(DistributionChannel).where(
         DistributionChannel.accommodation_id == accommodation_id
     )
     if year:
-        dc_query = dc_query.where(DistributionChannel.year == year)
+        if include_historical:
+            dc_query = dc_query.where(DistributionChannel.year <= year)
+        else:
+            dc_query = dc_query.where(DistributionChannel.year == year)
     dc_result = await session.execute(dc_query)
     distribution_channels = dc_result.scalars().all()
 
@@ -273,13 +279,22 @@ async def create_revenue_breakdowns(
 
 
 async def get_revenue_breakdowns(
-    session: AsyncSession, accommodation_id: int, year: int | None = None
+    session: AsyncSession,
+    accommodation_id: int,
+    year: int | None = None,
+    include_historical: bool = False,
 ) -> Sequence[RevenueBreakdown]:
     rb_query = select(RevenueBreakdown).where(
         RevenueBreakdown.accommodation_id == accommodation_id
     )
     if year:
         rb_query = rb_query.where(RevenueBreakdown.year == year)
+
+    if year:
+        if include_historical:
+            rb_query = rb_query.where(RevenueBreakdown.year <= year)
+        else:
+            rb_query = rb_query.where(RevenueBreakdown.year == year)
 
     rb_result = await session.execute(rb_query)
     revenue_breakdowns = rb_result.scalars().all()
@@ -331,15 +346,23 @@ async def create_accommodation_details(
 
 
 async def get_accommodation_details(
-    session: AsyncSession, accommodation_id: int, year: int | None = None
+    session: AsyncSession,
+    accommodation_id: int,
+    year: int | None = None,
+    include_historical: bool = False,
 ) -> Sequence[AccommodationDetails]:
     accommodation_details_query = select(AccommodationDetails).where(
         AccommodationDetails.accommodation_id == accommodation_id
     )
     if year:
-        accommodation_details_query = accommodation_details_query.where(
-            AccommodationDetails.year == year
-        )
+        if include_historical:
+            accommodation_details_query = accommodation_details_query.where(
+                AccommodationDetails.year <= year
+            )
+        else:
+            accommodation_details_query = accommodation_details_query.where(
+                AccommodationDetails.year == year
+            )
 
     accommodation_details_result = await session.execute(accommodation_details_query)
     accommodation_details = accommodation_details_result.scalars().all()
@@ -379,3 +402,87 @@ async def update_accommodation_details(
 
     await session.commit()
     return accommodation_details
+
+
+async def create_accommodation_theme(
+    session: AsyncSession, accommodation_id: int, data: AccommodationThemeCreate
+) -> AccommodationTheme:
+    new_theme = AccommodationTheme(
+        accommodation_id=accommodation_id,
+        theme_type=data.theme_type,
+    )
+    session.add(new_theme)
+    await session.commit()
+    return new_theme
+
+
+async def get_accommodation_themes(
+    session: AsyncSession, accommodation_id: int
+) -> Sequence[AccommodationTheme]:
+    query = select(AccommodationTheme).where(
+        AccommodationTheme.accommodation_id == accommodation_id
+    )
+    result = await session.execute(query)
+    return result.scalars().all()
+
+
+async def get_accommodation_theme(
+    session: AsyncSession, theme_id: int
+) -> AccommodationTheme | None:
+    query = select(AccommodationTheme).where(AccommodationTheme.theme_id == theme_id)
+    result = await session.execute(query)
+    return result.scalar_one_or_none()
+
+
+async def delete_accommodation_theme(session: AsyncSession, theme_id: int) -> bool:
+    theme = await get_accommodation_theme(session, theme_id)
+    if not theme:
+        return False
+    await session.delete(theme)
+    await session.commit()
+    return True
+
+
+async def create_accommodation_certification(
+    session: AsyncSession, accommodation_id: int, data: AccommodationCertificationCreate
+) -> AccommodationCertification:
+    new_certification = AccommodationCertification(
+        accommodation_id=accommodation_id,
+        certification_type=data.certification_type,
+        custom_name=data.custom_name,
+        obtained_year=data.obtained_year,
+    )
+    session.add(new_certification)
+    await session.commit()
+    return new_certification
+
+
+async def get_accommodation_certifications(
+    session: AsyncSession, accommodation_id: int
+) -> Sequence[AccommodationCertification]:
+    query = select(AccommodationCertification).where(
+        AccommodationCertification.accommodation_id == accommodation_id
+    )
+    result = await session.execute(query)
+    return result.scalars().all()
+
+
+async def get_accommodation_certification(
+    session: AsyncSession, certification_id: int
+) -> AccommodationCertification | None:
+    query = select(AccommodationCertification).where(
+        AccommodationCertification.certification_id == certification_id
+    )
+    result = await session.execute(query)
+    return result.scalar_one_or_none()
+
+
+async def delete_accommodation_certification(
+    session: AsyncSession, certification_id: int
+) -> bool:
+    certification = await get_accommodation_certification(session, certification_id)
+    if not certification:
+        return False
+    await session.delete(certification)
+    await session.commit()
+    return True
